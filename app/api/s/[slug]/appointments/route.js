@@ -1,5 +1,6 @@
 import { query } from "../../../../../../lib/db";
 
+
 export async function POST(req, { params }) {
   const slug = params.slug;
 
