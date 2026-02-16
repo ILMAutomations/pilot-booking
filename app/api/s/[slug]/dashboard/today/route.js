@@ -1,5 +1,6 @@
 import { query } from "../../../../../../../lib/db";
 
+
 export async function GET(req, { params }) {
   const slug = params.slug;
   if (!slug) return Response.json({ error: "Missing slug" }, { status: 400 });
