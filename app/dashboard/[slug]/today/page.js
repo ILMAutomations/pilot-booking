@@ -5,48 +5,82 @@ import { useEffect, useState } from "react";
 export default function TodayPage({ params }) {
   const { slug } = params;
 
+  const [services, setServices] = useState([]);
   const [appointments, setAppointments] = useState([]);
-  const [loading, setLoading] = useState(true);
 
+  const [serviceId, setServiceId] = useState("");
   const [start, setStart] = useState("");
-  const [end, setEnd] = useState("");
+
+  async function loadServices() {
+    const res = await fetch(`/api/s/${slug}/services`);
+    const data = await res.json();
+    setServices(data.services || []);
+    if ((data.services || []).length > 0) {
+      setServiceId(data.services[0].id);
+    }
+  }
 
   async function loadAppointments() {
     const res = await fetch(`/api/s/${slug}/dashboard/today`);
     const data = await res.json();
     setAppointments(data.rows || []);
-    setLoading(false);
   }
 
   async function createAppointment(e) {
     e.preventDefault();
 
-    await fetch(`/api/s/${slug}/appointments`, {
+    if (!serviceId) {
+      alert("Select a service");
+      return;
+    }
+
+    const res = await fetch(`/api/s/${slug}/appointments`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         start_at: new Date(start).toISOString(),
-        end_at: new Date(end).toISOString(),
-        notes: "Manual dashboard booking"
+        service_id: serviceId
       })
     });
 
+    if (!res.ok) {
+      const err = await res.json();
+      alert(err.error || "Create failed");
+      return;
+    }
+
     setStart("");
-    setEnd("");
     loadAppointments();
   }
 
   useEffect(() => {
+    loadServices();
     loadAppointments();
   }, []);
 
   return (
-    <main style={{ padding: 20, fontFamily: "system-ui" }}>
+    <main style={{ padding: 20 }}>
       <h1>Dashboard – {slug}</h1>
 
       <h2>Create Appointment</h2>
+
       <form onSubmit={createAppointment}>
         <div>
+          <label>Service:</label><br />
+          <select
+            value={serviceId}
+            onChange={(e) => setServiceId(e.target.value)}
+            required
+          >
+            {services.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div style={{ marginTop: 10 }}>
           <label>Start:</label><br />
           <input
             type="datetime-local"
@@ -56,49 +90,31 @@ export default function TodayPage({ params }) {
           />
         </div>
 
-        <div>
-          <label>End:</label><br />
-          <input
-            type="datetime-local"
-            value={end}
-            onChange={(e) => setEnd(e.target.value)}
-            required
-          />
-        </div>
-
-        <button type="submit" style={{ marginTop: 10 }}>
+        <button style={{ marginTop: 10 }} type="submit">
           Create
         </button>
       </form>
 
-      <h2 style={{ marginTop: 40 }}>Today's Appointments</h2>
+      <h2 style={{ marginTop: 30 }}>Today's Appointments</h2>
 
-      {loading ? (
-        <p>Loading...</p>
-      ) : (
-        <table border="1" cellPadding="8">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Start</th>
-              <th>End</th>
-              <th>Status</th>
-              <th>Notes</th>
+      <table border="1" cellPadding="6">
+        <thead>
+          <tr>
+            <th>Start</th>
+            <th>Service</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {appointments.map((a) => (
+            <tr key={a.id}>
+              <td>{new Date(a.start_at).toLocaleString()}</td>
+              <td>{a.service_name || a.service_id}</td>
+              <td>{a.status}</td>
             </tr>
-          </thead>
-          <tbody>
-            {appointments.map((a) => (
-              <tr key={a.id}>
-                <td>{a.id}</td>
-                <td>{new Date(a.start_at).toLocaleString()}</td>
-                <td>{new Date(a.end_at).toLocaleString()}</td>
-                <td>{a.status}</td>
-                <td>{a.notes}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+          ))}
+        </tbody>
+      </table>
     </main>
   );
 }
