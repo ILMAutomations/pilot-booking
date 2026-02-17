@@ -47,11 +47,23 @@ export default function TodayPage({ params }) {
       return;
     }
 
+    const svc = services.find((x) => x.id === serviceId);
+    const minutes = Number(svc?.duration_min || 0);
+
+    if (!minutes || minutes <= 0) {
+      setError("Service duration fehlt (duration_min).");
+      return;
+    }
+
+    const startIso = new Date(start).toISOString();
+    const endIso = new Date(new Date(startIso).getTime() + minutes * 60 * 1000).toISOString();
+
     const res = await fetch(`/api/s/${slug}/appointments`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
-        start_at: new Date(start).toISOString(),
+        start_at: startIso,
+        end_at: endIso,
         service_id: serviceId
       })
     });
@@ -84,7 +96,7 @@ export default function TodayPage({ params }) {
     input: { width: "100%", padding: "10px 10px", borderRadius: 10, border: "1px solid #24344c", background: "#0f1622", color: "#e8eef5" },
     button: { padding: "10px 14px", borderRadius: 10, border: "1px solid #2b3d59", background: "#162235", color: "#e8eef5", cursor: "pointer" },
     table: { width: "100%", marginTop: 16, borderTop: "1px solid #1f2a3a" },
-    row: { display: "grid", gridTemplateColumns: "160px 1.4fr 1fr 110px", gap: 10, padding: "10px 0", borderBottom: "1px solid #1f2a3a" },
+    row: { display: "grid", gridTemplateColumns: "160px 1.4fr 1fr 110px", gap: 10, padding: "10px 0", borderBottom: "1f2a3a" },
     th: { fontSize: 12, opacity: 0.75 },
     td: { fontSize: 14 },
     err: { marginTop: 10, color: "#ffb4b4", fontSize: 13 }
@@ -131,7 +143,7 @@ export default function TodayPage({ params }) {
           <div style={{ marginTop: 12, opacity: 0.8 }}>Loading…</div>
         ) : (
           <div style={styles.table}>
-            <div style={{ ...styles.row, paddingTop: 12, paddingBottom: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "160px 1.4fr 1fr 110px", gap: 10, padding: "10px 0", borderBottom: "1px solid #1f2a3a" }}>
               <div style={styles.th}>Start</div>
               <div style={styles.th}>Service</div>
               <div style={styles.th}>Customer</div>
@@ -140,9 +152,9 @@ export default function TodayPage({ params }) {
 
             {appointments.map((a) => {
               const serviceName = a.service_name || serviceNameById.get(a.service_id) || a.service_id;
-              const customerName = a.customer_name || ""; // only if your API provides it later; otherwise blank
+              const customerName = a.customer_name || "";
               return (
-                <div key={a.id} style={styles.row}>
+                <div key={a.id} style={{ display: "grid", gridTemplateColumns: "160px 1.4fr 1fr 110px", gap: 10, padding: "10px 0", borderBottom: "1px solid #1f2a3a" }}>
                   <div style={styles.td}>{new Date(a.start_at).toLocaleString()}</div>
                   <div style={styles.td}>{serviceName}</div>
                   <div style={styles.td}>{customerName}</div>
