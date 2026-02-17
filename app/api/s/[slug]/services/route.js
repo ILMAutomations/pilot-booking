@@ -18,13 +18,14 @@ export async function GET(req, { params }) {
 
     const salon_id = salonRes.rows[0].id;
 
-    const servicesRes = await query(
-      `SELECT id, name
-       FROM services
-       WHERE salon_id = $1
-       ORDER BY created_at ASC`,
-      [salon_id]
-    );
+const servicesRes = await query(
+  `SELECT id, name, duration_min
+   FROM services
+   WHERE salon_id = $1
+   ORDER BY created_at ASC`,
+  [salon_id]
+);
+
 
     return Response.json({
       slug,
