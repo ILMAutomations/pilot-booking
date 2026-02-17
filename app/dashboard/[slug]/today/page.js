@@ -70,14 +70,18 @@ export default function TodayPage({ params }) {
 
 if (!res.ok) {
   const err = await res.json().catch(() => ({}));
-  const msg = err.error || "Create failed";
 
-  if (String(msg).includes("no_overlapping_appointments")) {
+  // prefer structured codes from API
+  if (err.code === "OVERLAP") {
     setError("Dieser Zeitpunkt ist schon belegt. Bitte wähle eine andere Uhrzeit.");
     return;
   }
+  if (err.code === "OUTSIDE_HOURS") {
+    setError("Außerhalb der Öffnungszeiten. Bitte andere Uhrzeit wählen.");
+    return;
+  }
 
-  setError(msg);
+  setError(err.error || "Create failed");
   return;
 }
 
