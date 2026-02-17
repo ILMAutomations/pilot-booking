@@ -68,18 +68,19 @@ export default function TodayPage({ params }) {
       })
     });
 
-  if (!res.ok) {
+if (!res.ok) {
   const err = await res.json().catch(() => ({}));
   const msg = err.error || "Create failed";
 
   if (String(msg).includes("no_overlapping_appointments")) {
-    setError("Zeitkonflikt: Es gibt bereits einen Termin in diesem Zeitraum. Bitte andere Zeit wählen.");
+    setError("Dieser Zeitpunkt ist schon belegt. Bitte wähle eine andere Uhrzeit.");
     return;
   }
 
   setError(msg);
   return;
 }
+
 
 
     setStart("");
