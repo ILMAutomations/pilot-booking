@@ -71,19 +71,23 @@ export default function TodayPage({ params }) {
 if (!res.ok) {
   const err = await res.json().catch(() => ({}));
 
-  // prefer structured codes from API
-  if (err.code === "OVERLAP") {
-    setError("Dieser Zeitpunkt ist schon belegt. Bitte wähle eine andere Uhrzeit.");
-    return;
-  }
-  if (err.code === "OUTSIDE_HOURS") {
-    setError("Außerhalb der Öffnungszeiten. Bitte andere Uhrzeit wählen.");
+  // Overlap (DB exclusion constraint) -> clean user message
+  if (res.status === 409 || err.code === "OVERLAP") {
+    setError("Dieser Zeitraum ist leider bereits vergeben. Bitte wählen Sie eine andere Uhrzeit.");
     return;
   }
 
+  // Business hours -> clean user message
+  if (err.code === "OUTSIDE_HOURS") {
+    setError("Außerhalb der Öffnungszeiten. Bitte wählen Sie eine andere Uhrzeit.");
+    return;
+  }
+
+  // fallback
   setError(err.error || "Create failed");
   return;
 }
+
 
 
 
