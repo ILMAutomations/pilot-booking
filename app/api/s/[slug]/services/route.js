@@ -1,30 +1,47 @@
-import { query } from "../../../../../lib/db";
+// app/api/s/[slug]/services/route.js
+import { query } from "@/lib/db";
 
-export async function GET(req, { params }) {
-  const slug = params.slug;
-  if (!slug) return Response.json({ error: "Missing slug" }, { status: 400 });
-
+export async function GET(_req, { params }) {
   try {
+    const slug = params?.slug;
+
+    if (!slug) {
+      return Response.json({ error: "Missing slug" }, { status: 400 });
+    }
+
+    // 1) slug -> salon_id
     const salonRes = await query(
-      "SELECT id FROM salons WHERE slug = $1 LIMIT 1",
+      "select id, slug from salons where slug = $1 limit 1",
       [slug]
     );
+
     if (salonRes.rowCount === 0) {
       return Response.json({ error: "Salon not found" }, { status: 404 });
     }
 
     const salon_id = salonRes.rows[0].id;
 
+    // 2) services for salon
     const servicesRes = await query(
-      `SELECT id, name, duration_min
-       FROM services
-       WHERE salon_id = $1
-       ORDER BY created_at ASC`,
+      `
+      select id, name, duration_min
+      from services
+      where salon_id = $1
+      order by name asc
+      `,
       [salon_id]
     );
 
-    return Response.json({ slug, services: servicesRes.rows });
+    return Response.json({
+      slug,
+      salon_id,
+      services: servicesRes.rows,
+    });
   } catch (e) {
-    return Response.json({ error: String(e.message || e) }, { status: 500 });
+    // Keep error readable (pilot)
+    return Response.json(
+      { error: e?.message || String(e) },
+      { status: 500 }
+    );
   }
 }
