@@ -15,7 +15,6 @@ function fmtTime(iso) {
   return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 }
 
-// ====== UI THEME (Dark, calm, owner-tool) ======
 const UI = {
   page: {
     minHeight: "100vh",
@@ -34,12 +33,7 @@ const UI = {
     gap: 14,
     marginBottom: 18,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 680,
-    letterSpacing: "-0.02em",
-    margin: 0,
-  },
+  title: { fontSize: 24, fontWeight: 680, letterSpacing: "-0.02em", margin: 0 },
   sub: { fontSize: 13, color: "#9CA3AF", marginTop: 6 },
 
   badge: {
@@ -63,13 +57,18 @@ const UI = {
     padding: 22,
   },
 
-  // Controls card
+  // Sticky controls
   controlsCard: {
+    position: "sticky",
+    top: 16,
+    zIndex: 10,
     borderRadius: 16,
     border: "1px solid rgba(255,255,255,0.06)",
-    background: "rgba(15, 23, 42, 0.60)",
+    background: "rgba(15, 23, 42, 0.70)",
     padding: 14,
     marginBottom: 14,
+    backdropFilter: "blur(8px)",
+    boxShadow: "0 10px 22px rgba(0,0,0,0.25)",
   },
   controlsRow: {
     display: "grid",
@@ -109,13 +108,7 @@ const UI = {
     fontSize: 13,
   },
 
-  // Timeline layout
-  grid: {
-    display: "grid",
-    gridTemplateColumns: "84px 1fr",
-    gap: 12,
-    alignItems: "start",
-  },
+  grid: { display: "grid", gridTemplateColumns: "84px 1fr", gap: 12, alignItems: "start" },
   hourCol: (h) => ({ position: "relative", height: h, userSelect: "none" }),
   hourLabel: {
     position: "absolute",
@@ -132,7 +125,6 @@ const UI = {
     boxShadow:
       "inset 0 1px 0 rgba(255,255,255,0.03), 0 10px 24px rgba(0,0,0,0.35)",
   },
-
   canvas: (h) => ({
     position: "relative",
     height: h,
@@ -148,7 +140,7 @@ const UI = {
     right: 0,
     top,
     height: 1,
-    background: "rgba(255,255,255,0.08)",
+    background: "rgba(255,255,255,0.10)",
   }),
 
   block: (top, height) => ({
@@ -168,26 +160,14 @@ const UI = {
     flexDirection: "column",
     justifyContent: "space-between",
   }),
-  blockTime: {
-    fontWeight: 750,
-    letterSpacing: "-0.01em",
-    fontSize: 13,
-    color: "#E5E7EB",
-  },
+  blockTime: { fontWeight: 750, letterSpacing: "-0.01em", fontSize: 13, color: "#E5E7EB" },
   blockService: { fontSize: 13, color: "#CBD5E1", marginTop: 2 },
-  blockMetaRow: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 10,
-    marginTop: 10,
-  },
+  blockMetaRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 10 },
   blockMeta: { fontSize: 12, color: "#93A4BF" },
-
   statusText: (status) => {
     const s = String(status || "").toLowerCase();
-    if (s === "confirmed") return { color: "rgba(134, 239, 172, 0.90)" }; // muted green
-    if (s === "cancelled") return { color: "rgba(252, 165, 165, 0.90)" }; // muted red
+    if (s === "confirmed") return { color: "rgba(134, 239, 172, 0.90)" };
+    if (s === "cancelled") return { color: "rgba(252, 165, 165, 0.90)" };
     if (s === "no_show") return { color: "rgba(248, 113, 113, 0.95)" };
     if (s === "new") return { color: "rgba(187, 247, 208, 0.95)" };
     return { color: "#93A4BF" };
@@ -202,16 +182,29 @@ export default function TodayPage() {
   const [serviceId, setServiceId] = useState("");
   const [error, setError] = useState("");
 
-  // Keep logic unchanged
-  const DAY_START_MIN = 8 * 60;
-  const DAY_END_MIN = 21 * 60;
-  const PX_PER_MIN = 2;
-  const timelineHeight = (DAY_END_MIN - DAY_START_MIN) * PX_PER_MIN;
+  // Dynamic display window from API (fallback 08–21)
+  const [displayStartMin, setDisplayStartMin] = useState(8 * 60);
+  const [displayEndMin, setDisplayEndMin] = useState(21 * 60);
+
+  // Fit on screen: px/min adapts to range (display only)
+  const rangeMin = Math.max(1, displayEndMin - displayStartMin);
+  const PX_PER_MIN = useMemo(() => {
+    // target canvas around ~820px height on desktop
+    const targetPx = 820;
+    const v = targetPx / rangeMin;
+    return Math.min(2.0, Math.max(1.1, v));
+  }, [rangeMin]);
+
+  const timelineHeight = rangeMin * PX_PER_MIN;
 
   useEffect(() => {
     fetch(`/api/s/${slug}/dashboard/today`)
       .then((r) => r.json())
-      .then((data) => setRows(data.rows || []));
+      .then((data) => {
+        setRows(data.rows || []);
+        if (typeof data.display_start_min === "number") setDisplayStartMin(data.display_start_min);
+        if (typeof data.display_end_min === "number") setDisplayEndMin(data.display_end_min);
+      });
 
     fetch(`/api/s/${slug}/services`)
       .then((r) => r.json())
@@ -234,24 +227,19 @@ export default function TodayPage() {
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-
       if (res.status === 409) {
         setError("Zeit ist bereits belegt. Bitte andere Uhrzeit wählen.");
         return;
       }
-
       if (err.code === "OUTSIDE_HOURS") {
         setError("Außerhalb der Öffnungszeiten. Bitte andere Uhrzeit wählen.");
         return;
       }
-
       setError(err.error || "Create failed");
       return;
     }
 
-    const updated = await fetch(`/api/s/${slug}/dashboard/today`).then((r) =>
-      r.json()
-    );
+    const updated = await fetch(`/api/s/${slug}/dashboard/today`).then((r) => r.json());
     setRows(updated.rows || []);
   }
 
@@ -265,8 +253,7 @@ export default function TodayPage() {
     .map((r) => {
       const startMin = minutesSinceMidnight(r.start_at);
       const endMin = minutesSinceMidnight(r.end_at);
-
-      const top = (startMin - DAY_START_MIN) * PX_PER_MIN;
+      const top = (startMin - displayStartMin) * PX_PER_MIN;
       const height = Math.max(34, (endMin - startMin) * PX_PER_MIN);
 
       return {
@@ -274,11 +261,13 @@ export default function TodayPage() {
         top,
         height,
         startLabel: fmtTime(r.start_at),
-        serviceLabel:
-          r.service_name || serviceNameById.get(r.service_id) || "Service",
+        serviceLabel: r.service_name || serviceNameById.get(r.service_id) || "Service",
       };
     })
     .filter((b) => b.top + b.height >= 0 && b.top <= timelineHeight);
+
+  const hourStart = Math.ceil(displayStartMin / 60);
+  const hourEnd = Math.floor(displayEndMin / 60);
 
   return (
     <div style={UI.page}>
@@ -292,14 +281,9 @@ export default function TodayPage() {
         </div>
 
         <div style={UI.card}>
-          {/* Controls as separate card */}
           <div style={UI.controlsCard}>
             <div style={UI.controlsRow}>
-              <select
-                value={serviceId}
-                onChange={(e) => setServiceId(e.target.value)}
-                style={UI.input}
-              >
+              <select value={serviceId} onChange={(e) => setServiceId(e.target.value)} style={UI.input}>
                 <option value="">Service wählen</option>
                 {services.map((s) => (
                   <option key={s.id} value={s.id}>
@@ -308,12 +292,7 @@ export default function TodayPage() {
                 ))}
               </select>
 
-              <input
-                type="datetime-local"
-                value={start}
-                onChange={(e) => setStart(e.target.value)}
-                style={UI.input}
-              />
+              <input type="datetime-local" value={start} onChange={(e) => setStart(e.target.value)} style={UI.input} />
 
               <button onClick={createAppointment} style={UI.button}>
                 Create
@@ -323,29 +302,24 @@ export default function TodayPage() {
             {error && <div style={UI.error}>{error}</div>}
           </div>
 
-          {/* Timeline */}
           <div style={UI.grid}>
             <div style={UI.hourCol(timelineHeight)}>
-              {Array.from({ length: (DAY_END_MIN - DAY_START_MIN) / 60 + 1 }).map(
-                (_, i) => {
-                  const hour = 8 + i;
-                  const top = (hour * 60 - DAY_START_MIN) * PX_PER_MIN;
-                  return (
-                    <div key={hour} style={{ ...UI.hourLabel, top }}>
-                      {pad2(hour)}:00
-                    </div>
-                  );
-                }
-              )}
+              {Array.from({ length: Math.max(0, hourEnd - hourStart + 1) }).map((_, i) => {
+                const hour = hourStart + i;
+                const top = (hour * 60 - displayStartMin) * PX_PER_MIN;
+                return (
+                  <div key={hour} style={{ ...UI.hourLabel, top }}>
+                    {pad2(hour)}:00
+                  </div>
+                );
+              })}
             </div>
 
             <div style={UI.timelineCard}>
               <div style={UI.canvas(timelineHeight)}>
-                {Array.from({
-                  length: (DAY_END_MIN - DAY_START_MIN) / 60 + 1,
-                }).map((_, i) => {
-                  const hour = 8 + i;
-                  const top = (hour * 60 - DAY_START_MIN) * PX_PER_MIN;
+                {Array.from({ length: Math.max(0, hourEnd - hourStart + 1) }).map((_, i) => {
+                  const hour = hourStart + i;
+                  const top = (hour * 60 - displayStartMin) * PX_PER_MIN;
                   return <div key={hour} style={UI.hourLine(top)} />;
                 })}
 
@@ -356,9 +330,7 @@ export default function TodayPage() {
                       <div style={UI.blockService}>{b.serviceLabel}</div>
                     </div>
                     <div style={UI.blockMetaRow}>
-                      <div style={{ ...UI.blockMeta, ...UI.statusText(b.status) }}>
-                        {b.status}
-                      </div>
+                      <div style={{ ...UI.blockMeta, ...UI.statusText(b.status) }}>{b.status}</div>
                       <div style={UI.blockMeta}>dashboard</div>
                     </div>
                   </div>
@@ -367,7 +339,6 @@ export default function TodayPage() {
             </div>
           </div>
 
-          {/* tiny footer spacing */}
           <div style={{ height: 6 }} />
         </div>
       </div>
