@@ -47,25 +47,23 @@ const UI = {
   },
 
   card: {
-    position: "relative",
     borderRadius: 18,
     border: "1px solid rgba(35, 48, 68, 0.9)",
     background: "rgba(11, 18, 32, 0.72)",
     boxShadow:
       "0 12px 30px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.03)",
-    backdropFilter: "blur(6px)",
     padding: 18,
   },
 
-  // Controls (NOT sticky — safest)
-  controlsWrap: {
+  // Controls Card (separate from timeline; prevents overlay bugs)
+  controlsCard: {
     position: "relative",
-    zIndex: 10,
+    zIndex: 9999,
+    pointerEvents: "auto",
     borderRadius: 18,
     border: "1px solid rgba(35, 48, 68, 0.9)",
     background: "rgba(11, 18, 32, 0.92)",
     boxShadow: "0 12px 30px rgba(0,0,0,0.30)",
-    backdropFilter: "blur(8px)",
     padding: 14,
     marginBottom: 14,
   },
@@ -84,8 +82,7 @@ const UI = {
     background: "rgba(2, 6, 23, 0.55)",
     color: "#E5E7EB",
     outline: "none",
-    position: "relative",
-    zIndex: 20, // ensure click target on top
+    pointerEvents: "auto",
   },
   button: {
     height: 40,
@@ -98,8 +95,7 @@ const UI = {
     cursor: "pointer",
     boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
     whiteSpace: "nowrap",
-    position: "relative",
-    zIndex: 20,
+    pointerEvents: "auto",
   },
 
   error: {
@@ -119,12 +115,14 @@ const UI = {
     gap: 12,
     alignItems: "start",
     marginTop: 10,
+    position: "relative",
+    zIndex: 0, // timeline always below controls
   },
   hourCol: (h) => ({
     position: "relative",
     height: h,
     userSelect: "none",
-    zIndex: 1,
+    zIndex: 0,
   }),
   hourLabel: {
     position: "absolute",
@@ -142,7 +140,7 @@ const UI = {
       "linear-gradient(180deg, rgba(2,6,23,0.72) 0%, rgba(11,18,32,0.72) 100%)",
     overflow: "hidden",
     padding: 10,
-    zIndex: 1,
+    zIndex: 0,
   }),
   hourLine: (top) => ({
     position: "absolute",
@@ -151,6 +149,7 @@ const UI = {
     top,
     height: 1,
     background: "rgba(148, 163, 184, 0.12)",
+    pointerEvents: "none",
   }),
 
   block: (top, height) => ({
@@ -169,6 +168,7 @@ const UI = {
     display: "flex",
     flexDirection: "column",
     justifyContent: "space-between",
+    pointerEvents: "none", // blocks can't steal clicks from controls
   }),
   blockTime: {
     fontWeight: 700,
@@ -327,45 +327,46 @@ export default function DashboardToday({ params }) {
           <div style={UI.badge}>Pilot</div>
         </div>
 
-        <div style={UI.card}>
-          <div style={UI.controlsWrap}>
-            <div style={UI.controlsRow}>
-              <select
-                value={serviceId}
-                onChange={(e) => setServiceId(e.target.value)}
-                style={UI.input}
-              >
-                <option value="">Service wählen</option>
-                {services.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
+        {/* Controls are outside timeline grid to avoid any overlay / pointer issues */}
+        <div style={UI.controlsCard}>
+          <div style={UI.controlsRow}>
+            <select
+              value={serviceId}
+              onChange={(e) => setServiceId(e.target.value)}
+              style={UI.input}
+            >
+              <option value="">Service wählen</option>
+              {services.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
 
-              <input
-                type="datetime-local"
-                value={start}
-                onChange={(e) => setStart(e.target.value)}
-                style={UI.input}
-              />
+            <input
+              type="datetime-local"
+              value={start}
+              onChange={(e) => setStart(e.target.value)}
+              style={UI.input}
+            />
 
-              <button
-                onClick={createAppointment}
-                disabled={loading}
-                style={{
-                  ...UI.button,
-                  opacity: loading ? 0.6 : 1,
-                  cursor: loading ? "not-allowed" : "pointer",
-                }}
-              >
-                {loading ? "Creating..." : "Create"}
-              </button>
-            </div>
-
-            {error && <div style={UI.error}>{error}</div>}
+            <button
+              onClick={createAppointment}
+              disabled={loading}
+              style={{
+                ...UI.button,
+                opacity: loading ? 0.6 : 1,
+                cursor: loading ? "not-allowed" : "pointer",
+              }}
+            >
+              {loading ? "Creating..." : "Create"}
+            </button>
           </div>
 
+          {error && <div style={UI.error}>{error}</div>}
+        </div>
+
+        <div style={UI.card}>
           <div style={UI.grid}>
             <div style={UI.hourCol(timelineHeight)}>
               {Array.from({ length: hourCount }).map((_, i) => {
