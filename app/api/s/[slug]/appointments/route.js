@@ -1,92 +1,154 @@
-import { query } from "../../../../../lib/db";
+import { NextResponse } from "next/server";
+import { db } from "@/lib/db";
 
-function json(status, payload) {
-  return Response.json(payload, { status });
+function timeToMinutes(t) {
+  // "HH:MM:SS" or "HH:MM"
+  if (!t) return null;
+  const parts = String(t).split(":");
+  const hh = parseInt(parts[0] || "0", 10);
+  const mm = parseInt(parts[1] || "0", 10);
+  return hh * 60 + mm;
+}
+
+function isoToDate(iso) {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return null;
+  return d;
 }
 
 export async function POST(req, { params }) {
   const slug = params.slug;
 
   try {
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
 
-    const start_at = body.start_at;
-    const end_at = body.end_at;
-    const service_id = body.service_id;
-    const notes = body.notes || null;
+    const service_id = body.service_id || null;
+    const start_at = body.start_at || null;
+    const source = body.source || "dashboard"; // website | phone | dashboard (we keep it simple)
+    const notes = body.notes ?? null;
 
-    if (!slug) return json(400, { error: "Missing slug", code: "MISSING_SLUG" });
-    if (!start_at) return json(400, { error: "Missing start_at (ISO string)", code: "MISSING_START" });
-    if (!end_at) return json(400, { error: "Missing end_at (ISO string)", code: "MISSING_END" });
-    if (!service_id) return json(400, { error: "Missing service_id", code: "MISSING_SERVICE" });
+    if (!service_id) {
+      return NextResponse.json({ error: "Missing service_id" }, { status: 400 });
+    }
+    if (!start_at) {
+      return NextResponse.json({ error: "Missing start_at (ISO string)" }, { status: 400 });
+    }
 
-    // 1) Resolve salon_id by slug
-    const salonRes = await query("select id from salons where slug = $1 limit 1", [slug]);
-    if (salonRes.rowCount === 0) return json(404, { error: "Salon not found", code: "SALON_NOT_FOUND" });
-    const salon_id = salonRes.rows[0].id;
+    const startDate = isoToDate(start_at);
+    if (!startDate) {
+      return NextResponse.json({ error: "Invalid start_at (ISO string)" }, { status: 400 });
+    }
 
-    // 2) Ensure service belongs to this salon
-    const svcRes = await query(
-      "select id from services where id = $1 and salon_id = $2 limit 1",
+    // 1) salon lookup
+    const salonRes = await db.query(
+      `select id from salons where slug = $1 limit 1`,
+      [slug]
+    );
+    const salon = salonRes.rows[0];
+    if (!salon) {
+      return NextResponse.json({ error: "Salon not found" }, { status: 404 });
+    }
+    const salon_id = salon.id;
+
+    // 2) service lookup (must belong to salon)
+    const svcRes = await db.query(
+      `select id, duration_min from services where id = $1 and salon_id = $2 limit 1`,
       [service_id, salon_id]
     );
-    if (svcRes.rowCount === 0) {
-      return json(400, { error: "service_id not found for this salon", code: "BAD_SERVICE" });
+    const svc = svcRes.rows[0];
+    if (!svc) {
+      return NextResponse.json({ error: "Service not found for this salon" }, { status: 400 });
     }
 
-    // 3) Business hours check (Europe/Berlin)
-    // Sunday closed = no row in business_hours
-    const hoursRes = await query(
+    const durationMin = Number(svc.duration_min || 0);
+    if (!durationMin || durationMin < 5) {
+      return NextResponse.json({ error: "Invalid service duration" }, { status: 400 });
+    }
+
+    // 3) compute end_at server-side (THIS IS THE FIX)
+    const endDate = new Date(startDate.getTime() + durationMin * 60 * 1000);
+    const end_at = endDate.toISOString();
+
+    // 4) business hours validation (uses business_hours table)
+    // Robust weekday mapping:
+    // JS getDay: 0..6 (Sun..Sat)
+    const jsDow = startDate.getDay();
+    const altDow = jsDow === 0 ? 7 : jsDow;
+
+    const bhRes = await db.query(
       `
-      with t as (
-        select
-          ($1::timestamptz at time zone 'Europe/Berlin') as local_start,
-          ($2::timestamptz at time zone 'Europe/Berlin') as local_end
-      )
-      select 1
-      from business_hours bh, t
-      where bh.salon_id = $3
-        and bh.weekday = extract(isodow from t.local_start)::int
-        and (t.local_start::time) >= bh.open_time
-        and (t.local_end::time) <= bh.close_time
+      select weekday, open_time, close_time
+      from business_hours
+      where salon_id = $1
+        and weekday in ($2, $3)
+      order by case when weekday = $2 then 0 else 1 end
       limit 1
       `,
-      [start_at, end_at, salon_id]
+      [salon_id, jsDow, altDow]
     );
 
-    if (hoursRes.rowCount === 0) {
-      return json(400, {
-        error: "Außerhalb der Öffnungszeiten. Bitte andere Uhrzeit wählen.",
-        code: "OUTSIDE_HOURS"
-      });
+    if (bhRes.rows[0]) {
+      const openMin = timeToMinutes(bhRes.rows[0].open_time);
+      const closeMin = timeToMinutes(bhRes.rows[0].close_time);
+
+      // only enforce if we have valid open/close
+      if (openMin != null && closeMin != null) {
+        const startMin = startDate.getHours() * 60 + startDate.getMinutes();
+        const endMin = endDate.getHours() * 60 + endDate.getMinutes();
+
+        // outside hours -> block
+        if (startMin < openMin || endMin > closeMin) {
+          return NextResponse.json(
+            { error: "Outside business hours", code: "OUTSIDE_HOURS" },
+            { status: 400 }
+          );
+        }
+      }
     }
 
-    // 4) Insert appointment (catch overlap constraint cleanly)
+    // 5) insert (overlap constraint will throw 409)
+    let inserted;
     try {
-      const ins = await query(
-        `insert into appointments
-          (salon_id, service_id, customer_id, kind, status, start_at, end_at, notes, gcal_sync_status)
-         values
-          ($1, $2, null, 'booking', 'confirmed', $3::timestamptz, $4::timestamptz, $5, 'pending')
-         returning *`,
+      const ins = await db.query(
+        `
+        insert into appointments
+          (salon_id, service_id, kind, status, start_at, end_at, notes, gcal_sync_status)
+        values
+          ($1, $2, 'booking', 'confirmed', $3, $4, $5, 'pending')
+        returning *
+        `,
         [salon_id, service_id, start_at, end_at, notes]
       );
-
-      return json(201, ins.rows[0]);
+      inserted = ins.rows[0];
     } catch (e) {
-      const msg = String(e?.message || e);
-
-      // Postgres exclusion violation (overlap) is usually SQLSTATE 23P01
-      if (e?.code === "23P01" || msg.includes("no_overlapping_appointments")) {
-        return json(409, {
-          error: "Dieser Zeitpunkt ist schon belegt. Bitte wähle eine andere Uhrzeit.",
-          code: "OVERLAP"
-        });
+      // overlap exclusion constraint → return 409 clean
+      const msg = String(e?.message || "");
+      const code = String(e?.code || "");
+      if (code === "23P01" || msg.toLowerCase().includes("no_overlapping_appointments")) {
+        return NextResponse.json(
+          { error: "Time slot already booked" },
+          { status: 409 }
+        );
       }
-
-      return json(500, { error: msg, code: "INSERT_FAILED" });
+      throw e;
     }
+
+    return NextResponse.json(
+      {
+        id: inserted.id,
+        salon_id: inserted.salon_id,
+        service_id: inserted.service_id,
+        start_at: inserted.start_at,
+        end_at: inserted.end_at,
+        status: inserted.status,
+        source,
+      },
+      { status: 201 }
+    );
   } catch (e) {
-    return json(500, { error: String(e?.message || e), code: "SERVER_ERROR" });
+    return NextResponse.json(
+      { error: e?.message || "Server error" },
+      { status: 500 }
+    );
   }
 }
