@@ -46,10 +46,8 @@ const UI = {
     height: "fit-content",
   },
 
-  // IMPORTANT: card must NOT create weird overlay stacking
   card: {
     position: "relative",
-    zIndex: 0,
     borderRadius: 18,
     border: "1px solid rgba(35, 48, 68, 0.9)",
     background: "rgba(11, 18, 32, 0.72)",
@@ -59,22 +57,18 @@ const UI = {
     padding: 18,
   },
 
-  // Sticky controls (clickable fix)
+  // Controls (NOT sticky — safest)
   controlsWrap: {
-    position: "sticky",
-    top: 16,
-    zIndex: 50,
-    isolation: "isolate",
-    pointerEvents: "auto",
+    position: "relative",
+    zIndex: 10,
     borderRadius: 18,
     border: "1px solid rgba(35, 48, 68, 0.9)",
     background: "rgba(11, 18, 32, 0.92)",
-    boxShadow: "0 12px 30px rgba(0,0,0,0.35)",
+    boxShadow: "0 12px 30px rgba(0,0,0,0.30)",
     backdropFilter: "blur(8px)",
     padding: 14,
     marginBottom: 14,
   },
-
   controlsRow: {
     display: "grid",
     gridTemplateColumns: "1.2fr 1fr auto",
@@ -90,6 +84,8 @@ const UI = {
     background: "rgba(2, 6, 23, 0.55)",
     color: "#E5E7EB",
     outline: "none",
+    position: "relative",
+    zIndex: 20, // ensure click target on top
   },
   button: {
     height: 40,
@@ -102,6 +98,8 @@ const UI = {
     cursor: "pointer",
     boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
     whiteSpace: "nowrap",
+    position: "relative",
+    zIndex: 20,
   },
 
   error: {
@@ -126,6 +124,7 @@ const UI = {
     position: "relative",
     height: h,
     userSelect: "none",
+    zIndex: 1,
   }),
   hourLabel: {
     position: "absolute",
@@ -143,7 +142,7 @@ const UI = {
       "linear-gradient(180deg, rgba(2,6,23,0.72) 0%, rgba(11,18,32,0.72) 100%)",
     overflow: "hidden",
     padding: 10,
-    zIndex: 0,
+    zIndex: 1,
   }),
   hourLine: (top) => ({
     position: "absolute",
@@ -209,13 +208,17 @@ export default function DashboardToday({ params }) {
   }, [displayStartMin, displayEndMin]);
 
   async function loadServices() {
-    const res = await fetch(`/api/s/${slug}/services`);
-    const data = await res.json();
-    setServices(Array.isArray(data.services) ? data.services : []);
+    try {
+      const res = await fetch(`/api/s/${slug}/services`, { cache: "no-store" });
+      const data = await res.json();
+      setServices(Array.isArray(data.services) ? data.services : []);
+    } catch {
+      setServices([]);
+    }
   }
 
   async function loadToday() {
-    const res = await fetch(`/api/s/${slug}/dashboard/today`);
+    const res = await fetch(`/api/s/${slug}/dashboard/today`, { cache: "no-store" });
     const data = await res.json();
 
     setToday({
