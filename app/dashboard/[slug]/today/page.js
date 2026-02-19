@@ -1,186 +1,201 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 
-export default function TodayPage({ params }) {
-  const { slug } = params;
+function pad2(n) {
+  return String(n).padStart(2, "0");
+}
 
+function minutesSinceMidnight(date) {
+  const d = new Date(date);
+  return d.getHours() * 60 + d.getMinutes();
+}
+
+function fmtTime(iso) {
+  const d = new Date(iso);
+  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+
+export default function TodayPage() {
+  const { slug } = useParams();
+  const [rows, setRows] = useState([]);
   const [services, setServices] = useState([]);
-  const [appointments, setAppointments] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  const [serviceId, setServiceId] = useState("");
   const [start, setStart] = useState("");
+  const [serviceId, setServiceId] = useState("");
   const [error, setError] = useState("");
 
-  const serviceNameById = useMemo(() => {
-    const m = new Map();
-    for (const s of services) m.set(s.id, s.name);
-    return m;
-  }, [services]);
+  const DAY_START_MIN = 8 * 60;
+  const DAY_END_MIN = 21 * 60;
+  const PX_PER_MIN = 2;
+  const timelineHeight = (DAY_END_MIN - DAY_START_MIN) * PX_PER_MIN;
 
-  async function loadServices() {
-    const res = await fetch(`/api/s/${slug}/services`, { cache: "no-store" });
-    const data = await res.json();
-    const list = data.services || [];
-    setServices(list);
-    if (list.length > 0) setServiceId(list[0].id);
-  }
+  useEffect(() => {
+    fetch(`/api/s/${slug}/dashboard/today`)
+      .then((r) => r.json())
+      .then((data) => setRows(data.rows || []));
 
-  async function loadToday() {
-    const res = await fetch(`/api/s/${slug}/dashboard/today`, { cache: "no-store" });
-    const data = await res.json();
-    setAppointments(data.rows || []);
-    setLoading(false);
-  }
+    fetch(`/api/s/${slug}/services`)
+      .then((r) => r.json())
+      .then((data) => setServices(data.services || []));
+  }, [slug]);
 
-  async function createAppointment(e) {
-    e.preventDefault();
+  async function createAppointment() {
     setError("");
-
-    if (!serviceId) {
-      setError("Bitte Service auswählen.");
-      return;
-    }
-    if (!start) {
-      setError("Bitte Startzeit auswählen.");
-      return;
-    }
-
-    const svc = services.find((x) => x.id === serviceId);
-    const minutes = Number(svc?.duration_min || 0);
-
-    if (!minutes || minutes <= 0) {
-      setError("Service duration fehlt (duration_min).");
-      return;
-    }
-
-    const startIso = new Date(start).toISOString();
-    const endIso = new Date(new Date(startIso).getTime() + minutes * 60 * 1000).toISOString();
+    if (!serviceId || !start) return;
 
     const res = await fetch(`/api/s/${slug}/appointments`, {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        start_at: startIso,
-        end_at: endIso,
-        service_id: serviceId
-      })
+        service_id: serviceId,
+        start_at: new Date(start).toISOString(),
+        source: "dashboard",
+      }),
     });
 
-if (!res.ok) {
-  const err = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
 
-  // Overlap (DB exclusion constraint) -> clean user message
-  if (res.status === 409 || err.code === "OVERLAP") {
-    setError("Dieser Zeitraum ist leider bereits vergeben. Bitte wählen Sie eine andere Uhrzeit.");
-    return;
+      if (res.status === 409) {
+        setError(
+          "Dieser Zeitraum ist leider bereits vergeben. Bitte wählen Sie eine andere Uhrzeit."
+        );
+        return;
+      }
+
+      if (err.code === "OUTSIDE_HOURS") {
+        setError(
+          "Außerhalb der Öffnungszeiten. Bitte wählen Sie eine andere Uhrzeit."
+        );
+        return;
+      }
+
+      setError(err.error || "Create failed");
+      return;
+    }
+
+    const updated = await fetch(`/api/s/${slug}/dashboard/today`).then((r) =>
+      r.json()
+    );
+    setRows(updated.rows || []);
   }
 
-  // Business hours -> clean user message
-  if (err.code === "OUTSIDE_HOURS") {
-    setError("Außerhalb der Öffnungszeiten. Bitte wählen Sie eine andere Uhrzeit.");
-    return;
-  }
+  const blocks = rows
+    .map((r) => {
+      const startMin = minutesSinceMidnight(r.start_at);
+      const endMin = minutesSinceMidnight(r.end_at);
 
-  // fallback
-  setError(err.error || "Create failed");
-  return;
-}
+      const top = (startMin - DAY_START_MIN) * PX_PER_MIN;
+      const height = Math.max(24, (endMin - startMin) * PX_PER_MIN);
 
-
-
-
-    setStart("");
-    await loadToday();
-  }
-
-  useEffect(() => {
-    (async () => {
-      setLoading(true);
-      await loadServices();
-      await loadToday();
-    })();
-  }, []);
-
-  const styles = {
-    page: { fontFamily: "system-ui", padding: 24, background: "#0b0f14", minHeight: "100vh", color: "#e8eef5" },
-    card: { maxWidth: 980, margin: "0 auto", background: "#111824", border: "1px solid #1f2a3a", borderRadius: 14, padding: 18 },
-    header: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 },
-    badge: { fontSize: 12, padding: "4px 10px", borderRadius: 999, background: "#162235", border: "1px solid #24344c" },
-    grid: { display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: 10, alignItems: "end" },
-    label: { fontSize: 12, opacity: 0.8, marginBottom: 6 },
-    input: { width: "100%", padding: "10px 10px", borderRadius: 10, border: "1px solid #24344c", background: "#0f1622", color: "#e8eef5" },
-    button: { padding: "10px 14px", borderRadius: 10, border: "1px solid #2b3d59", background: "#162235", color: "#e8eef5", cursor: "pointer" },
-    table: { width: "100%", marginTop: 16, borderTop: "1px solid #1f2a3a" },
-    row: { display: "grid", gridTemplateColumns: "160px 1.4fr 1fr 110px", gap: 10, padding: "10px 0", borderBottom: "1f2a3a" },
-    th: { fontSize: 12, opacity: 0.75 },
-    td: { fontSize: 14 },
-    err: { marginTop: 10, color: "#ffb4b4", fontSize: 13 }
-  };
+      return {
+        ...r,
+        top,
+        height,
+        startLabel: fmtTime(r.start_at),
+      };
+    })
+    .filter((b) => b.top + b.height >= 0 && b.top <= timelineHeight);
 
   return (
-    <div style={styles.page}>
-      <div style={styles.card}>
-        <div style={styles.header}>
-          <div>
-            <div style={{ fontSize: 18, fontWeight: 700 }}>Dashboard Today</div>
-            <div style={{ fontSize: 13, opacity: 0.8 }}>Salon: <span style={{ fontWeight: 600 }}>{slug}</span></div>
-          </div>
-          <div style={styles.badge}>Pilot</div>
+    <div style={{ maxWidth: 1000, margin: "40px auto", padding: 20 }}>
+      <h2 style={{ marginBottom: 20 }}>Salon: {slug}</h2>
+
+      <div style={{ marginBottom: 20 }}>
+        <select
+          value={serviceId}
+          onChange={(e) => setServiceId(e.target.value)}
+          style={{ padding: 8, marginRight: 8 }}
+        >
+          <option value="">Service wählen</option>
+          {services.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.name}
+            </option>
+          ))}
+        </select>
+
+        <input
+          type="datetime-local"
+          value={start}
+          onChange={(e) => setStart(e.target.value)}
+          style={{ padding: 8, marginRight: 8 }}
+        />
+
+        <button onClick={createAppointment} style={{ padding: "8px 14px" }}>
+          Create
+        </button>
+
+        {error && (
+          <div style={{ marginTop: 10, color: "red" }}>{error}</div>
+        )}
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "80px 1fr",
+          gap: 10,
+        }}
+      >
+        <div style={{ position: "relative", height: timelineHeight }}>
+          {Array.from({
+            length: (DAY_END_MIN - DAY_START_MIN) / 60 + 1,
+          }).map((_, i) => {
+            const hour = 8 + i;
+            const top = (hour * 60 - DAY_START_MIN) * PX_PER_MIN;
+            return (
+              <div
+                key={hour}
+                style={{
+                  position: "absolute",
+                  top,
+                  fontSize: 12,
+                  color: "#666",
+                }}
+              >
+                {pad2(hour)}:00
+              </div>
+            );
+          })}
         </div>
 
-        <form onSubmit={createAppointment}>
-          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>Create Appointment</div>
-
-          <div style={styles.grid}>
-            <div>
-              <div style={styles.label}>Service</div>
-              <select style={styles.input} value={serviceId} onChange={(e) => setServiceId(e.target.value)} required>
-                {services.map((s) => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
-                ))}
-              </select>
+        <div
+          style={{
+            position: "relative",
+            height: timelineHeight,
+            border: "1px solid #eee",
+            borderRadius: 12,
+            background: "#fafafa",
+          }}
+        >
+          {blocks.map((b) => (
+            <div
+              key={b.id}
+              style={{
+                position: "absolute",
+                left: 10,
+                right: 10,
+                top: b.top,
+                height: b.height,
+                borderRadius: 12,
+                background: "#fff",
+                border: "1px solid #ddd",
+                padding: 10,
+                boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
+              }}
+            >
+              <div style={{ fontWeight: 600 }}>{b.startLabel}</div>
+              <div style={{ fontSize: 13 }}>
+                {b.service_name || "Service"}
+              </div>
+              <div style={{ fontSize: 12, color: "#666" }}>
+                {b.status}
+              </div>
             </div>
-
-            <div>
-              <div style={styles.label}>Start</div>
-              <input style={styles.input} type="datetime-local" value={start} onChange={(e) => setStart(e.target.value)} required />
-            </div>
-
-            <button style={styles.button} type="submit">Create</button>
-          </div>
-
-          {error ? <div style={styles.err}>{error}</div> : null}
-        </form>
-
-        <div style={{ marginTop: 18, fontSize: 13, fontWeight: 600 }}>Today</div>
-
-        {loading ? (
-          <div style={{ marginTop: 12, opacity: 0.8 }}>Loading…</div>
-        ) : (
-          <div style={styles.table}>
-            <div style={{ display: "grid", gridTemplateColumns: "160px 1.4fr 1fr 110px", gap: 10, padding: "10px 0", borderBottom: "1px solid #1f2a3a" }}>
-              <div style={styles.th}>Start</div>
-              <div style={styles.th}>Service</div>
-              <div style={styles.th}>Customer</div>
-              <div style={styles.th}>Status</div>
-            </div>
-
-            {appointments.map((a) => {
-              const serviceName = a.service_name || serviceNameById.get(a.service_id) || a.service_id;
-              const customerName = a.customer_name || "";
-              return (
-                <div key={a.id} style={{ display: "grid", gridTemplateColumns: "160px 1.4fr 1fr 110px", gap: 10, padding: "10px 0", borderBottom: "1px solid #1f2a3a" }}>
-                  <div style={styles.td}>{new Date(a.start_at).toLocaleString()}</div>
-                  <div style={styles.td}>{serviceName}</div>
-                  <div style={styles.td}>{customerName}</div>
-                  <div style={styles.td}>{a.status}</div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+          ))}
+        </div>
       </div>
     </div>
   );
