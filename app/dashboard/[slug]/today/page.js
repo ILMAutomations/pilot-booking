@@ -17,19 +17,177 @@ function fmtTime(iso) {
   return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 }
 
+// ====== UI THEME (Dark, calm, owner-tool) ======
+const UI = {
+  page: {
+    minHeight: "100vh",
+    background: "linear-gradient(180deg, #070B14 0%, #0B1220 55%, #070B14 100%)",
+    color: "#E5E7EB",
+    padding: "48px 20px",
+    fontFamily:
+      'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji"',
+  },
+  shell: {
+    maxWidth: 1050,
+    margin: "0 auto",
+  },
+  headerRow: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 18,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: 650,
+    letterSpacing: "-0.02em",
+    margin: 0,
+  },
+  sub: {
+    fontSize: 13,
+    color: "#9CA3AF",
+    marginTop: 4,
+  },
+  badge: {
+    fontSize: 12,
+    padding: "6px 10px",
+    borderRadius: 999,
+    border: "1px solid #233044",
+    background: "rgba(17, 24, 39, 0.55)",
+    color: "#C7D2FE",
+  },
+  card: {
+    borderRadius: 18,
+    border: "1px solid rgba(35, 48, 68, 0.9)",
+    background: "rgba(11, 18, 32, 0.72)",
+    boxShadow:
+      "0 12px 30px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.03)",
+    backdropFilter: "blur(6px)",
+    padding: 18,
+  },
+
+  // Controls
+  controlsRow: {
+    display: "grid",
+    gridTemplateColumns: "1.2fr 1fr auto",
+    gap: 10,
+    alignItems: "center",
+    marginBottom: 14,
+  },
+  input: {
+    width: "100%",
+    height: 40,
+    padding: "0 12px",
+    borderRadius: 12,
+    border: "1px solid rgba(35, 48, 68, 0.9)",
+    background: "rgba(2, 6, 23, 0.55)",
+    color: "#E5E7EB",
+    outline: "none",
+  },
+  button: {
+    height: 40,
+    padding: "0 16px",
+    borderRadius: 12,
+    border: "1px solid rgba(59, 130, 246, 0.45)",
+    background: "rgba(59, 130, 246, 0.16)",
+    color: "#DBEAFE",
+    fontWeight: 600,
+    cursor: "pointer",
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
+  },
+
+  error: {
+    marginTop: 10,
+    padding: "10px 12px",
+    borderRadius: 12,
+    border: "1px solid rgba(248, 113, 113, 0.45)",
+    background: "rgba(127, 29, 29, 0.22)",
+    color: "#FCA5A5",
+    fontSize: 13,
+  },
+
+  // Timeline layout
+  grid: {
+    display: "grid",
+    gridTemplateColumns: "88px 1fr",
+    gap: 12,
+    alignItems: "start",
+    marginTop: 12,
+  },
+  hourCol: (h) => ({
+    position: "relative",
+    height: h,
+    userSelect: "none",
+  }),
+  hourLabel: {
+    position: "absolute",
+    fontSize: 12,
+    color: "#93A4BF",
+    transform: "translateY(-50%)",
+  },
+
+  canvas: (h) => ({
+    position: "relative",
+    height: h,
+    borderRadius: 18,
+    border: "1px solid rgba(35, 48, 68, 0.9)",
+    background:
+      "linear-gradient(180deg, rgba(2,6,23,0.72) 0%, rgba(11,18,32,0.72) 100%)",
+    overflow: "hidden",
+  }),
+  hourLine: (top) => ({
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top,
+    height: 1,
+    background: "rgba(148, 163, 184, 0.10)",
+  }),
+
+  block: (top, height) => ({
+    position: "absolute",
+    left: 12,
+    right: 12,
+    top,
+    height,
+    borderRadius: 16,
+    border: "1px solid rgba(35, 48, 68, 0.9)",
+    background:
+      "linear-gradient(180deg, rgba(17,24,39,0.92) 0%, rgba(11,18,32,0.92) 100%)",
+    padding: 12,
+    boxShadow:
+      "0 10px 20px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04)",
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "space-between",
+  }),
+  blockTime: {
+    fontWeight: 700,
+    letterSpacing: "-0.01em",
+    fontSize: 13,
+    color: "#E5E7EB",
+  },
+  blockService: {
+    fontSize: 13,
+    color: "#CBD5E1",
+  },
+  blockMeta: {
+    fontSize: 12,
+    color: "#93A4BF",
+  },
+};
+
 export default function TodayPage() {
   const { slug } = useParams();
-
   const [rows, setRows] = useState([]);
   const [services, setServices] = useState([]);
   const [start, setStart] = useState("");
   const [serviceId, setServiceId] = useState("");
   const [error, setError] = useState("");
 
-  // --- Timeline constants (unchanged logic) ---
-  const DAY_START_MIN = 8 * 60; // 08:00
-  const DAY_END_MIN = 21 * 60; // 21:00
-  const PX_PER_MIN = 2; // 2px per minute
+  const DAY_START_MIN = 8 * 60;
+  const DAY_END_MIN = 21 * 60;
+  const PX_PER_MIN = 2;
   const timelineHeight = (DAY_END_MIN - DAY_START_MIN) * PX_PER_MIN;
 
   useEffect(() => {
@@ -59,7 +217,7 @@ export default function TodayPage() {
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
 
-      if (res.status === 409 || err.code === "OVERLAP") {
+      if (res.status === 409) {
         setError(
           "Zeit ist bereits belegt. Bitte andere Uhrzeit wählen."
         );
@@ -83,8 +241,7 @@ export default function TodayPage() {
     setRows(updated.rows || []);
   }
 
-  // --- Build blocks (unchanged logic) ---
-  const blocks = (rows || [])
+  const blocks = rows
     .map((r) => {
       const startMin = minutesSinceMidnight(r.start_at);
       const endMin = minutesSinceMidnight(r.end_at);
@@ -97,279 +254,91 @@ export default function TodayPage() {
         top,
         height,
         startLabel: fmtTime(r.start_at),
-        endLabel: fmtTime(r.end_at),
       };
     })
     .filter((b) => b.top + b.height >= 0 && b.top <= timelineHeight);
 
-  // --- Styles (dark, calm, owner-like) ---
-  const styles = {
-    page: {
-      minHeight: "100vh",
-      background: "#0b1220",
-      color: "#e5e7eb",
-      fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif",
-      padding: 28,
-    },
-    shell: {
-      maxWidth: 1100,
-      margin: "0 auto",
-    },
-    card: {
-      background: "#0f172a",
-      border: "1px solid #1f2a44",
-      borderRadius: 16,
-      boxShadow: "0 10px 30px rgba(0,0,0,0.35)",
-      padding: 18,
-    },
-    headerRow: {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "flex-start",
-      gap: 16,
-      marginBottom: 14,
-    },
-    title: {
-      fontSize: 16,
-      fontWeight: 700,
-      margin: 0,
-      lineHeight: 1.2,
-      color: "#f3f4f6",
-    },
-    subtitle: {
-      marginTop: 6,
-      fontSize: 12.5,
-      color: "#9ca3af",
-    },
-    divider: {
-      height: 1,
-      background: "#18233b",
-      margin: "14px 0",
-    },
-    controls: {
-      display: "grid",
-      gridTemplateColumns: "1.6fr 1.2fr auto",
-      gap: 10,
-      alignItems: "end",
-    },
-    label: {
-      fontSize: 12,
-      color: "#9ca3af",
-      marginBottom: 6,
-    },
-    input: {
-      width: "100%",
-      height: 40,
-      borderRadius: 12,
-      border: "1px solid #243244",
-      background: "#0b1324",
-      color: "#e5e7eb",
-      padding: "0 12px",
-      outline: "none",
-      boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)",
-    },
-    button: {
-      height: 40,
-      borderRadius: 12,
-      border: "1px solid #2b3a55",
-      background: "#111c33",
-      color: "#f3f4f6",
-      padding: "0 14px",
-      cursor: "pointer",
-      fontWeight: 700,
-      letterSpacing: 0.2,
-    },
-    helperRow: {
-      marginTop: 10,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      gap: 10,
-    },
-    hint: { fontSize: 12, color: "#94a3b8" },
-    errorBox: {
-      marginTop: 12,
-      padding: "10px 12px",
-      borderRadius: 12,
-      border: "1px solid rgba(248,113,113,0.35)",
-      background: "rgba(248,113,113,0.10)",
-      color: "#fecaca",
-      fontSize: 13,
-    },
-    grid: {
-      display: "grid",
-      gridTemplateColumns: "90px 1fr",
-      gap: 12,
-      marginTop: 16,
-    },
-    axis: {
-      position: "relative",
-      height: timelineHeight,
-    },
-    axisLabel: {
-      position: "absolute",
-      left: 0,
-      fontSize: 12,
-      color: "#7c8aa3",
-      letterSpacing: 0.2,
-    },
-    lane: {
-      position: "relative",
-      height: timelineHeight,
-      border: "1px solid #1f2a44",
-      borderRadius: 16,
-      background: "#0b1324",
-      overflow: "hidden",
-    },
-    hourLine: {
-      position: "absolute",
-      left: 0,
-      right: 0,
-      borderTop: "1px solid rgba(148,163,184,0.10)",
-    },
-    block: {
-      position: "absolute",
-      left: 12,
-      right: 12,
-      borderRadius: 14,
-      background: "#111827",
-      border: "1px solid #243244",
-      padding: 10,
-      boxShadow: "0 8px 18px rgba(0,0,0,0.25)",
-      overflow: "hidden",
-    },
-    blockTop: {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      gap: 10,
-      marginBottom: 4,
-    },
-    blockTime: { fontWeight: 800, fontSize: 13, color: "#f3f4f6" },
-    blockStatus: { fontSize: 12, color: "#9ca3af" },
-    blockService: { fontSize: 13, color: "#e5e7eb" },
-    blockMeta: { marginTop: 4, fontSize: 12, color: "#94a3b8" },
-  };
-
   return (
-    <div style={styles.page}>
-      <div style={styles.shell}>
-        <div style={styles.card}>
-          <div style={styles.headerRow}>
-            <div>
-              <h1 style={styles.title}>Dashboard — Today</h1>
-              <div style={styles.subtitle}>
-                Salon: <b style={{ color: "#e5e7eb" }}>{slug}</b>
-              </div>
-            </div>
+    <div style={UI.page}>
+      <div style={UI.shell}>
+        <div style={UI.headerRow}>
+          <div>
+            <h2 style={UI.title}>Dashboard Today</h2>
+            <div style={UI.sub}>Salon: {slug}</div>
           </div>
+          <div style={UI.badge}>Pilot</div>
+        </div>
 
-          <div style={styles.controls}>
-            <div>
-              <div style={styles.label}>Service</div>
-              <select
-                value={serviceId}
-                onChange={(e) => setServiceId(e.target.value)}
-                style={styles.input}
-                required
-              >
-                <option value="">Service wählen</option>
-                {services.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+        <div style={UI.card}>
+          <div style={UI.controlsRow}>
+            <select
+              value={serviceId}
+              onChange={(e) => setServiceId(e.target.value)}
+              style={UI.input}
+            >
+              <option value="">Service wählen</option>
+              {services.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
 
-            <div>
-              <div style={styles.label}>Startzeit</div>
-              <input
-                type="datetime-local"
-                value={start}
-                onChange={(e) => setStart(e.target.value)}
-                style={styles.input}
-              />
-            </div>
+            <input
+              type="datetime-local"
+              value={start}
+              onChange={(e) => setStart(e.target.value)}
+              style={UI.input}
+            />
 
-            <button onClick={createAppointment} style={styles.button}>
+            <button onClick={createAppointment} style={UI.button}>
               Create
             </button>
           </div>
 
-          <div style={styles.helperRow}>
-            <div style={styles.hint}>
-              Zeitachse: {pad2(DAY_START_MIN / 60)}:00–{pad2(DAY_END_MIN / 60)}:00
-            </div>
-            <div style={styles.hint}>Overlaps werden serverseitig blockiert.</div>
-          </div>
+          {error && <div style={UI.error}>{error}</div>}
 
-          {error ? <div style={styles.errorBox}>{error}</div> : null}
-
-          <div style={styles.divider} />
-
-          <div style={styles.grid}>
-            {/* Time axis */}
-            <div style={styles.axis}>
-              {Array.from({
-                length: (DAY_END_MIN - DAY_START_MIN) / 60 + 1,
-              }).map((_, i) => {
-                const hour = 8 + i;
-                const top = (hour * 60 - DAY_START_MIN) * PX_PER_MIN;
-                return (
-                  <div
-                    key={hour}
-                    style={{ ...styles.axisLabel, top: top - 8 }}
-                  >
-                    {pad2(hour)}:00
-                  </div>
-                );
-              })}
+          <div style={UI.grid}>
+            {/* Hours column */}
+            <div style={UI.hourCol(timelineHeight)}>
+              {Array.from({ length: (DAY_END_MIN - DAY_START_MIN) / 60 + 1 }).map(
+                (_, i) => {
+                  const hour = 8 + i;
+                  const top = (hour * 60 - DAY_START_MIN) * PX_PER_MIN;
+                  return (
+                    <div
+                      key={hour}
+                      style={{
+                        ...UI.hourLabel,
+                        top,
+                      }}
+                    >
+                      {pad2(hour)}:00
+                    </div>
+                  );
+                }
+              )}
             </div>
 
-            {/* Timeline lane */}
-            <div style={styles.lane}>
-              {Array.from({
-                length: (DAY_END_MIN - DAY_START_MIN) / 60 + 1,
-              }).map((_, i) => {
-                const hour = 8 + i;
-                const top = (hour * 60 - DAY_START_MIN) * PX_PER_MIN;
-                return <div key={hour} style={{ ...styles.hourLine, top }} />;
-              })}
+            {/* Canvas */}
+            <div style={UI.canvas(timelineHeight)}>
+              {/* Hour lines */}
+              {Array.from({ length: (DAY_END_MIN - DAY_START_MIN) / 60 + 1 }).map(
+                (_, i) => {
+                  const hour = 8 + i;
+                  const top = (hour * 60 - DAY_START_MIN) * PX_PER_MIN;
+                  return <div key={hour} style={UI.hourLine(top)} />;
+                }
+              )}
 
+              {/* Blocks */}
               {blocks.map((b) => (
-                <div
-                  key={b.id}
-                  style={{
-                    ...styles.block,
-                    top: b.top,
-                    height: b.height,
-                  }}
-                  title={`${b.startLabel}–${b.endLabel}`}
-                >
-                  <div style={styles.blockTop}>
-                    <div style={styles.blockTime}>{b.startLabel}</div>
-                    <div style={styles.blockStatus}>{b.status}</div>
+                <div key={b.id} style={UI.block(b.top, b.height)}>
+                  <div>
+                    <div style={UI.blockTime}>{b.startLabel}</div>
+                    <div style={UI.blockService}>{b.service_name || "Service"}</div>
                   </div>
-
-                  <div style={styles.blockService}>
-                    {b.service_name || "Service"}
-                  </div>
-
-                  <div style={styles.blockMeta}>
-                    {(() => {
-                      try {
-                        const meta = JSON.parse(b.notes || "{}");
-                        const src = meta?.source;
-                        const icon =
-                          src === "phone" ? "📞" : src === "website" ? "🌐" : "🧑‍💼";
-                        const cname = meta?.customer?.name;
-                        return `${icon}${cname ? ` ${cname}` : ""}`;
-                      } catch {
-                        return "";
-                      }
-                    })()}
-                  </div>
+                  <div style={UI.blockMeta}>{b.status}</div>
                 </div>
               ))}
             </div>
