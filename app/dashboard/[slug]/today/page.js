@@ -1,17 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 
 function pad2(n) {
   return String(n).padStart(2, "0");
 }
-
 function minutesSinceMidnight(date) {
   const d = new Date(date);
   return d.getHours() * 60 + d.getMinutes();
 }
-
 function fmtTime(iso) {
   const d = new Date(iso);
   return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
@@ -21,77 +19,82 @@ function fmtTime(iso) {
 const UI = {
   page: {
     minHeight: "100vh",
-    background: "linear-gradient(180deg, #070B14 0%, #0B1220 55%, #070B14 100%)",
+    background: "linear-gradient(180deg, #060A12 0%, #0B1220 55%, #060A12 100%)",
     color: "#E5E7EB",
     padding: "48px 20px",
     fontFamily:
       'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji"',
   },
-  shell: {
-    maxWidth: 1050,
-    margin: "0 auto",
-  },
+  shell: { maxWidth: 1100, margin: "0 auto" },
+
   headerRow: {
     display: "flex",
-    alignItems: "center",
+    alignItems: "flex-start",
     justifyContent: "space-between",
+    gap: 14,
     marginBottom: 18,
   },
   title: {
-    fontSize: 22,
-    fontWeight: 650,
+    fontSize: 24,
+    fontWeight: 680,
     letterSpacing: "-0.02em",
     margin: 0,
   },
-  sub: {
-    fontSize: 13,
-    color: "#9CA3AF",
-    marginTop: 4,
-  },
+  sub: { fontSize: 13, color: "#9CA3AF", marginTop: 6 },
+
   badge: {
     fontSize: 12,
     padding: "6px 10px",
     borderRadius: 999,
-    border: "1px solid #233044",
-    background: "rgba(17, 24, 39, 0.55)",
+    border: "1px solid rgba(255,255,255,0.08)",
+    background: "rgba(15, 23, 42, 0.55)",
     color: "#C7D2FE",
-  },
-  card: {
-    borderRadius: 18,
-    border: "1px solid rgba(35, 48, 68, 0.9)",
-    background: "rgba(11, 18, 32, 0.72)",
-    boxShadow:
-      "0 12px 30px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.03)",
-    backdropFilter: "blur(6px)",
-    padding: 18,
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)",
+    height: "fit-content",
   },
 
-  // Controls
+  card: {
+    borderRadius: 20,
+    border: "1px solid rgba(255,255,255,0.06)",
+    background: "rgba(11, 18, 32, 0.72)",
+    boxShadow:
+      "0 14px 34px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.03)",
+    backdropFilter: "blur(6px)",
+    padding: 22,
+  },
+
+  // Controls card
+  controlsCard: {
+    borderRadius: 16,
+    border: "1px solid rgba(255,255,255,0.06)",
+    background: "rgba(15, 23, 42, 0.60)",
+    padding: 14,
+    marginBottom: 14,
+  },
   controlsRow: {
     display: "grid",
     gridTemplateColumns: "1.2fr 1fr auto",
     gap: 10,
     alignItems: "center",
-    marginBottom: 14,
   },
   input: {
     width: "100%",
-    height: 40,
+    height: 42,
     padding: "0 12px",
     borderRadius: 12,
-    border: "1px solid rgba(35, 48, 68, 0.9)",
+    border: "1px solid rgba(255,255,255,0.08)",
     background: "rgba(2, 6, 23, 0.55)",
     color: "#E5E7EB",
     outline: "none",
   },
   button: {
-    height: 40,
+    height: 42,
     padding: "0 16px",
     borderRadius: 12,
     border: "1px solid rgba(59, 130, 246, 0.45)",
-    background: "rgba(59, 130, 246, 0.16)",
+    background: "rgba(59, 130, 246, 0.18)",
     color: "#DBEAFE",
-    fontWeight: 600,
+    fontWeight: 650,
     cursor: "pointer",
     boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
   },
@@ -100,8 +103,8 @@ const UI = {
     marginTop: 10,
     padding: "10px 12px",
     borderRadius: 12,
-    border: "1px solid rgba(248, 113, 113, 0.45)",
-    background: "rgba(127, 29, 29, 0.22)",
+    border: "1px solid rgba(248, 113, 113, 0.40)",
+    background: "rgba(127, 29, 29, 0.20)",
     color: "#FCA5A5",
     fontSize: 13,
   },
@@ -109,28 +112,32 @@ const UI = {
   // Timeline layout
   grid: {
     display: "grid",
-    gridTemplateColumns: "88px 1fr",
+    gridTemplateColumns: "84px 1fr",
     gap: 12,
     alignItems: "start",
-    marginTop: 12,
   },
-  hourCol: (h) => ({
-    position: "relative",
-    height: h,
-    userSelect: "none",
-  }),
+  hourCol: (h) => ({ position: "relative", height: h, userSelect: "none" }),
   hourLabel: {
     position: "absolute",
     fontSize: 12,
-    color: "#93A4BF",
+    color: "#94A3B8",
     transform: "translateY(-50%)",
+  },
+
+  timelineCard: {
+    borderRadius: 20,
+    border: "1px solid rgba(255,255,255,0.06)",
+    background: "rgba(15, 23, 42, 0.45)",
+    padding: 14,
+    boxShadow:
+      "inset 0 1px 0 rgba(255,255,255,0.03), 0 10px 24px rgba(0,0,0,0.35)",
   },
 
   canvas: (h) => ({
     position: "relative",
     height: h,
     borderRadius: 18,
-    border: "1px solid rgba(35, 48, 68, 0.9)",
+    border: "1px solid rgba(255,255,255,0.06)",
     background:
       "linear-gradient(180deg, rgba(2,6,23,0.72) 0%, rgba(11,18,32,0.72) 100%)",
     overflow: "hidden",
@@ -141,7 +148,7 @@ const UI = {
     right: 0,
     top,
     height: 1,
-    background: "rgba(148, 163, 184, 0.10)",
+    background: "rgba(255,255,255,0.08)",
   }),
 
   block: (top, height) => ({
@@ -150,8 +157,8 @@ const UI = {
     right: 12,
     top,
     height,
-    borderRadius: 16,
-    border: "1px solid rgba(35, 48, 68, 0.9)",
+    borderRadius: 18,
+    border: "1px solid rgba(255,255,255,0.08)",
     background:
       "linear-gradient(180deg, rgba(17,24,39,0.92) 0%, rgba(11,18,32,0.92) 100%)",
     padding: 12,
@@ -162,18 +169,28 @@ const UI = {
     justifyContent: "space-between",
   }),
   blockTime: {
-    fontWeight: 700,
+    fontWeight: 750,
     letterSpacing: "-0.01em",
     fontSize: 13,
     color: "#E5E7EB",
   },
-  blockService: {
-    fontSize: 13,
-    color: "#CBD5E1",
+  blockService: { fontSize: 13, color: "#CBD5E1", marginTop: 2 },
+  blockMetaRow: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+    marginTop: 10,
   },
-  blockMeta: {
-    fontSize: 12,
-    color: "#93A4BF",
+  blockMeta: { fontSize: 12, color: "#93A4BF" },
+
+  statusText: (status) => {
+    const s = String(status || "").toLowerCase();
+    if (s === "confirmed") return { color: "rgba(134, 239, 172, 0.90)" }; // muted green
+    if (s === "cancelled") return { color: "rgba(252, 165, 165, 0.90)" }; // muted red
+    if (s === "no_show") return { color: "rgba(248, 113, 113, 0.95)" };
+    if (s === "new") return { color: "rgba(187, 247, 208, 0.95)" };
+    return { color: "#93A4BF" };
   },
 };
 
@@ -185,6 +202,7 @@ export default function TodayPage() {
   const [serviceId, setServiceId] = useState("");
   const [error, setError] = useState("");
 
+  // Keep logic unchanged
   const DAY_START_MIN = 8 * 60;
   const DAY_END_MIN = 21 * 60;
   const PX_PER_MIN = 2;
@@ -218,16 +236,12 @@ export default function TodayPage() {
       const err = await res.json().catch(() => ({}));
 
       if (res.status === 409) {
-        setError(
-          "Zeit ist bereits belegt. Bitte andere Uhrzeit wählen."
-        );
+        setError("Zeit ist bereits belegt. Bitte andere Uhrzeit wählen.");
         return;
       }
 
       if (err.code === "OUTSIDE_HOURS") {
-        setError(
-          "Außerhalb der Öffnungszeiten. Bitte andere Uhrzeit wählen."
-        );
+        setError("Außerhalb der Öffnungszeiten. Bitte andere Uhrzeit wählen.");
         return;
       }
 
@@ -241,19 +255,27 @@ export default function TodayPage() {
     setRows(updated.rows || []);
   }
 
+  const serviceNameById = useMemo(() => {
+    const m = new Map();
+    (services || []).forEach((s) => m.set(s.id, s.name));
+    return m;
+  }, [services]);
+
   const blocks = rows
     .map((r) => {
       const startMin = minutesSinceMidnight(r.start_at);
       const endMin = minutesSinceMidnight(r.end_at);
 
       const top = (startMin - DAY_START_MIN) * PX_PER_MIN;
-      const height = Math.max(28, (endMin - startMin) * PX_PER_MIN);
+      const height = Math.max(34, (endMin - startMin) * PX_PER_MIN);
 
       return {
         ...r,
         top,
         height,
         startLabel: fmtTime(r.start_at),
+        serviceLabel:
+          r.service_name || serviceNameById.get(r.service_id) || "Service",
       };
     })
     .filter((b) => b.top + b.height >= 0 && b.top <= timelineHeight);
@@ -270,49 +292,46 @@ export default function TodayPage() {
         </div>
 
         <div style={UI.card}>
-          <div style={UI.controlsRow}>
-            <select
-              value={serviceId}
-              onChange={(e) => setServiceId(e.target.value)}
-              style={UI.input}
-            >
-              <option value="">Service wählen</option>
-              {services.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
+          {/* Controls as separate card */}
+          <div style={UI.controlsCard}>
+            <div style={UI.controlsRow}>
+              <select
+                value={serviceId}
+                onChange={(e) => setServiceId(e.target.value)}
+                style={UI.input}
+              >
+                <option value="">Service wählen</option>
+                {services.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
 
-            <input
-              type="datetime-local"
-              value={start}
-              onChange={(e) => setStart(e.target.value)}
-              style={UI.input}
-            />
+              <input
+                type="datetime-local"
+                value={start}
+                onChange={(e) => setStart(e.target.value)}
+                style={UI.input}
+              />
 
-            <button onClick={createAppointment} style={UI.button}>
-              Create
-            </button>
+              <button onClick={createAppointment} style={UI.button}>
+                Create
+              </button>
+            </div>
+
+            {error && <div style={UI.error}>{error}</div>}
           </div>
 
-          {error && <div style={UI.error}>{error}</div>}
-
+          {/* Timeline */}
           <div style={UI.grid}>
-            {/* Hours column */}
             <div style={UI.hourCol(timelineHeight)}>
               {Array.from({ length: (DAY_END_MIN - DAY_START_MIN) / 60 + 1 }).map(
                 (_, i) => {
                   const hour = 8 + i;
                   const top = (hour * 60 - DAY_START_MIN) * PX_PER_MIN;
                   return (
-                    <div
-                      key={hour}
-                      style={{
-                        ...UI.hourLabel,
-                        top,
-                      }}
-                    >
+                    <div key={hour} style={{ ...UI.hourLabel, top }}>
                       {pad2(hour)}:00
                     </div>
                   );
@@ -320,29 +339,36 @@ export default function TodayPage() {
               )}
             </div>
 
-            {/* Canvas */}
-            <div style={UI.canvas(timelineHeight)}>
-              {/* Hour lines */}
-              {Array.from({ length: (DAY_END_MIN - DAY_START_MIN) / 60 + 1 }).map(
-                (_, i) => {
+            <div style={UI.timelineCard}>
+              <div style={UI.canvas(timelineHeight)}>
+                {Array.from({
+                  length: (DAY_END_MIN - DAY_START_MIN) / 60 + 1,
+                }).map((_, i) => {
                   const hour = 8 + i;
                   const top = (hour * 60 - DAY_START_MIN) * PX_PER_MIN;
                   return <div key={hour} style={UI.hourLine(top)} />;
-                }
-              )}
+                })}
 
-              {/* Blocks */}
-              {blocks.map((b) => (
-                <div key={b.id} style={UI.block(b.top, b.height)}>
-                  <div>
-                    <div style={UI.blockTime}>{b.startLabel}</div>
-                    <div style={UI.blockService}>{b.service_name || "Service"}</div>
+                {blocks.map((b) => (
+                  <div key={b.id} style={UI.block(b.top, b.height)}>
+                    <div>
+                      <div style={UI.blockTime}>{b.startLabel}</div>
+                      <div style={UI.blockService}>{b.serviceLabel}</div>
+                    </div>
+                    <div style={UI.blockMetaRow}>
+                      <div style={{ ...UI.blockMeta, ...UI.statusText(b.status) }}>
+                        {b.status}
+                      </div>
+                      <div style={UI.blockMeta}>dashboard</div>
+                    </div>
                   </div>
-                  <div style={UI.blockMeta}>{b.status}</div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
+
+          {/* tiny footer spacing */}
+          <div style={{ height: 6 }} />
         </div>
       </div>
     </div>
