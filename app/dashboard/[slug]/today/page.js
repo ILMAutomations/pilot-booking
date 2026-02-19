@@ -17,11 +17,13 @@ const UI = {
       'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji"',
   },
   shell: { maxWidth: 1100, margin: "0 auto" },
+
   headerRow: {
     display: "flex",
     alignItems: "flex-start",
     justifyContent: "space-between",
     marginBottom: 18,
+    gap: 14,
   },
   title: {
     fontSize: 24,
@@ -43,7 +45,11 @@ const UI = {
     color: "#C7D2FE",
     height: "fit-content",
   },
+
+  // IMPORTANT: card must NOT create weird overlay stacking
   card: {
+    position: "relative",
+    zIndex: 0,
     borderRadius: 18,
     border: "1px solid rgba(35, 48, 68, 0.9)",
     background: "rgba(11, 18, 32, 0.72)",
@@ -53,19 +59,22 @@ const UI = {
     padding: 18,
   },
 
-  // Controls
+  // Sticky controls (clickable fix)
   controlsWrap: {
     position: "sticky",
     top: 16,
-    zIndex: 10,
+    zIndex: 50,
+    isolation: "isolate",
+    pointerEvents: "auto",
     borderRadius: 18,
     border: "1px solid rgba(35, 48, 68, 0.9)",
-    background: "rgba(11, 18, 32, 0.86)",
+    background: "rgba(11, 18, 32, 0.92)",
     boxShadow: "0 12px 30px rgba(0,0,0,0.35)",
     backdropFilter: "blur(8px)",
     padding: 14,
     marginBottom: 14,
   },
+
   controlsRow: {
     display: "grid",
     gridTemplateColumns: "1.2fr 1fr auto",
@@ -134,6 +143,7 @@ const UI = {
       "linear-gradient(180deg, rgba(2,6,23,0.72) 0%, rgba(11,18,32,0.72) 100%)",
     overflow: "hidden",
     padding: 10,
+    zIndex: 0,
   }),
   hourLine: (top) => ({
     position: "absolute",
@@ -176,7 +186,6 @@ const UI = {
     fontSize: 12,
     color: "#93A4BF",
     marginTop: 8,
-    textTransform: "none",
   },
 };
 
@@ -214,8 +223,6 @@ export default function DashboardToday({ params }) {
       rows: Array.isArray(data.rows) ? data.rows : [],
     });
 
-    // Optional dynamic display window coming from API:
-    // display_start_min / display_end_min (numbers)
     if (typeof data.display_start_min === "number") setDisplayStartMin(data.display_start_min);
     if (typeof data.display_end_min === "number") setDisplayEndMin(data.display_end_min);
   }
@@ -254,7 +261,7 @@ export default function DashboardToday({ params }) {
       })
       .filter((b) => b.top + b.height > -40 && b.top < timelineHeight + 40)
       .sort((a, b) => a.top - b.top);
-  }, [today, displayStartMin, PX_PER_MIN, timelineHeight]);
+  }, [today, displayStartMin, timelineHeight]);
 
   async function createAppointment() {
     setError("");
@@ -357,7 +364,6 @@ export default function DashboardToday({ params }) {
           </div>
 
           <div style={UI.grid}>
-            {/* Hours column */}
             <div style={UI.hourCol(timelineHeight)}>
               {Array.from({ length: hourCount }).map((_, i) => {
                 const hourMin = displayStartMin + i * 60;
@@ -378,16 +384,13 @@ export default function DashboardToday({ params }) {
               })}
             </div>
 
-            {/* Canvas */}
             <div style={UI.canvas(timelineHeight)}>
-              {/* Hour lines */}
               {Array.from({ length: hourCount }).map((_, i) => {
                 const hourMin = displayStartMin + i * 60;
                 const top = (hourMin - displayStartMin) * PX_PER_MIN;
                 return <div key={hourMin} style={UI.hourLine(top)} />;
               })}
 
-              {/* Blocks */}
               {blocks.map((b) => (
                 <div key={b.id} style={UI.block(b.top, b.height)}>
                   <div>
@@ -401,7 +404,6 @@ export default function DashboardToday({ params }) {
           </div>
         </div>
 
-        {/* Tiny footer */}
         <div style={{ marginTop: 14, fontSize: 12, color: "#64748B" }}>
           Today: {today.today_count} appointment(s)
         </div>
