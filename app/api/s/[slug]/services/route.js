@@ -1,46 +1,46 @@
-// app/api/s/[slug]/services/route.js
+import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
 
 export async function GET(_req, { params }) {
+  const slug = params?.slug;
+
   try {
-    const slug = params?.slug;
-
     if (!slug) {
-      return Response.json({ error: "Missing slug" }, { status: 400 });
+      return NextResponse.json({ error: "missing_slug" }, { status: 400 });
     }
 
-    // 1) slug -> salon_id
-    const salonRes = await query(
-      "select id, slug from salons where slug = $1 limit 1",
-      [slug]
-    );
-
-    if (salonRes.rowCount === 0) {
-      return Response.json({ error: "Salon not found" }, { status: 404 });
+    const salonRes = await query("select id from salons where slug=$1 limit 1", [
+      slug,
+    ]);
+    if (!salonRes.rowCount) {
+      return NextResponse.json({ error: "salon_not_found", slug }, { status: 404 });
     }
 
-    const salon_id = salonRes.rows[0].id;
+    const salonId = salonRes.rows[0].id;
 
-    // 2) services for salon
     const servicesRes = await query(
       `
       select id, name, duration_min
       from services
-      where salon_id = $1
+      where salon_id=$1
       order by name asc
       `,
-      [salon_id]
+      [salonId]
     );
 
-    return Response.json({
+    return NextResponse.json({
       slug,
-      salon_id,
+      salon_id: salonId,
       services: servicesRes.rows,
     });
-  } catch (e) {
-    // Keep error readable (pilot)
-    return Response.json(
-      { error: e?.message || String(e) },
+  } catch (error) {
+    console.error("[API_ERROR]", {
+      route: "/api/s/[slug]/services",
+      slug,
+      message: error?.message,
+    });
+    return NextResponse.json(
+      { error: "internal_error", slug },
       { status: 500 }
     );
   }
