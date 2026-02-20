@@ -1,102 +1,93 @@
+import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
 
-function minutesFromTimeString(t) {
-  // "10:00:00" or "10:00"
-  if (!t) return null;
-  const [hh, mm] = String(t).split(":");
+function toMinutesHHMM(timeStr) {
+  // accepts "HH:MM:SS" or "HH:MM"
+  if (!timeStr) return null;
+  const [hh, mm] = String(timeStr).split(":");
   const h = Number(hh);
   const m = Number(mm);
   if (Number.isNaN(h) || Number.isNaN(m)) return null;
   return h * 60 + m;
 }
 
-function clamp(n, min, max) {
-  return Math.max(min, Math.min(max, n));
-}
-
 export async function GET(_req, { params }) {
+  const slug = params?.slug;
+
   try {
-    const slug = params?.slug;
     if (!slug) {
-      return Response.json({ error: "Missing slug" }, { status: 400 });
+      return NextResponse.json({ error: "missing_slug" }, { status: 400 });
     }
 
-    // 1) Resolve salon_id
-    const salonRes = await query(
-      "select id from salons where slug = $1 limit 1",
-      [slug]
-    );
-    if (salonRes.rowCount === 0) {
-      return Response.json({ error: "Salon not found" }, { status: 404 });
+    const salonRes = await query("select id from salons where slug=$1 limit 1", [
+      slug,
+    ]);
+    if (!salonRes.rowCount) {
+      return NextResponse.json({ error: "salon_not_found", slug }, { status: 404 });
     }
-    const salon_id = salonRes.rows[0].id;
+    const salonId = salonRes.rows[0].id;
 
-    // 2) Today range (UTC day)
+    // Today range (UTC) – keep simple/pilot-safe:
     const now = new Date();
-    const dayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0));
-    const dayEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 59, 59));
+    const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0));
+    const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 0, 0));
 
-    // 3) Load appointments (today) + service name
+    // Join service name for display
     const apptRes = await query(
       `
-      select
-        a.*,
-        s.name as service_name
+      select a.*,
+             s.name as service_name
       from appointments a
       left join services s on s.id = a.service_id
       where a.salon_id = $1
         and a.start_at >= $2
-        and a.start_at <= $3
+        and a.start_at < $3
       order by a.start_at asc
       `,
-      [salon_id, dayStart.toISOString(), dayEnd.toISOString()]
+      [salonId, start.toISOString(), end.toISOString()]
     );
 
-    // 4) Display window (based on today's business_hours if present)
-    // weekday: 1=Mon ... 7=Sun  (assumption based on your data)
-    // We'll compute "today weekday" in Europe/Berlin-like, but DB stores just weekday.
-    // Using JS local weekday: 0=Sun..6=Sat -> convert to 1..7
-    const jsDay = new Date().getDay(); // 0..6
-    const weekday = jsDay === 0 ? 7 : jsDay; // 1..7
-
-    const hoursRes = await query(
+    // Business hours display window for *today's weekday* (fallback 08–21)
+    const weekday = ((start.getUTCDay() + 6) % 7) + 1; // Mon=1..Sun=7 (matches typical weekday storage)
+    const bhRes = await query(
       `
       select open_time, close_time
       from business_hours
-      where salon_id = $1 and weekday = $2
+      where salon_id=$1 and weekday=$2
       limit 1
       `,
-      [salon_id, weekday]
+      [salonId, weekday]
     );
 
-    let display_start_min = 8 * 60;
-    let display_end_min = 21 * 60;
+    let displayStartMin = 8 * 60;
+    let displayEndMin = 21 * 60;
 
-    if (hoursRes.rowCount > 0) {
-      const openMin = minutesFromTimeString(hoursRes.rows[0].open_time);
-      const closeMin = minutesFromTimeString(hoursRes.rows[0].close_time);
+    if (bhRes.rowCount) {
+      const openMin = toMinutesHHMM(bhRes.rows[0].open_time);
+      const closeMin = toMinutesHHMM(bhRes.rows[0].close_time);
 
       if (openMin != null && closeMin != null) {
-        display_start_min = clamp(openMin - 60, 6 * 60, 22 * 60);
-        display_end_min = clamp(closeMin + 60, 6 * 60, 22 * 60);
-        if (display_end_min <= display_start_min) {
-          display_start_min = 8 * 60;
-          display_end_min = 21 * 60;
-        }
+        displayStartMin = Math.max(6 * 60, openMin - 60);
+        displayEndMin = Math.min(22 * 60, closeMin + 60);
       }
     }
 
-    return Response.json({
+    return NextResponse.json({
       slug,
-      salon_id,
+      salon_id: salonId,
       today_count: apptRes.rows.length,
       rows: apptRes.rows,
-      display_start_min,
-      display_end_min,
+      display_start_min: displayStartMin,
+      display_end_min: displayEndMin,
     });
-  } catch (e) {
-    return Response.json(
-      { error: e?.message || String(e) },
+  } catch (error) {
+    console.error("[API_ERROR]", {
+      route: "/api/s/[slug]/dashboard/today",
+      slug,
+      message: error?.message,
+    });
+    return NextResponse.json(
+      { error: "internal_error", slug },
       { status: 500 }
     );
   }
