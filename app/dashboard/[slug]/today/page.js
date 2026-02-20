@@ -2,6 +2,24 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+function pad2(n) {
+  return String(n).padStart(2, "0");
+}
+
+function toISOFromDatetimeLocal(v) {
+  // v like "2026-02-19T15:00"
+  if (!v) return null;
+  const d = new Date(v);
+  if (isNaN(d.getTime())) return null;
+  return d.toISOString();
+}
+
+function minutesFromISO(iso) {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return null;
+  return d.getHours() * 60 + d.getMinutes();
+}
+
 // ====== UI THEME (Dark, calm, owner-tool) ======
 const UI = {
   page: {
@@ -12,27 +30,15 @@ const UI = {
     fontFamily:
       'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji"',
   },
-  shell: {
-    maxWidth: 1100,
-    margin: "0 auto",
-  },
+  shell: { maxWidth: 1100, margin: "0 auto" },
   headerRow: {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: 18,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 650,
-    letterSpacing: "-0.02em",
-    margin: 0,
-  },
-  sub: {
-    fontSize: 13,
-    color: "#9CA3AF",
-    marginTop: 4,
-  },
+  title: { fontSize: 24, fontWeight: 700, letterSpacing: "-0.02em", margin: 0 },
+  sub: { fontSize: 13, color: "#9CA3AF", marginTop: 4 },
   badge: {
     fontSize: 12,
     padding: "6px 10px",
@@ -45,20 +51,22 @@ const UI = {
     borderRadius: 18,
     border: "1px solid rgba(35, 48, 68, 0.9)",
     background: "rgba(11, 18, 32, 0.72)",
-    boxShadow:
-      "0 12px 30px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.03)",
+    boxShadow: "0 12px 30px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.03)",
     backdropFilter: "blur(6px)",
     padding: 18,
   },
 
-  // Controls
   controlsCard: {
     borderRadius: 16,
     border: "1px solid rgba(255,255,255,0.06)",
     background: "rgba(15, 23, 42, 0.6)",
     padding: 14,
-    marginBottom: 12,
+    position: "sticky",
+    top: 16,
+    zIndex: 40,
+    backdropFilter: "blur(6px)",
   },
+
   controlsRow: {
     display: "grid",
     gridTemplateColumns: "1.2fr 1fr auto",
@@ -85,7 +93,6 @@ const UI = {
     fontWeight: 600,
     cursor: "pointer",
     boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
-    whiteSpace: "nowrap",
   },
 
   error: {
@@ -98,44 +105,26 @@ const UI = {
     fontSize: 13,
   },
 
-  // Timeline layout
   grid: {
     display: "grid",
     gridTemplateColumns: "88px 1fr",
     gap: 12,
     alignItems: "start",
-    marginTop: 10,
+    marginTop: 12,
   },
-  hourCol: (h) => ({
-    position: "relative",
-    height: h,
-    userSelect: "none",
-  }),
-  hourLabel: {
-    position: "absolute",
-    fontSize: 12,
-    color: "#93A4BF",
-    transform: "translateY(-50%)",
-  },
+  hourCol: (h) => ({ position: "relative", height: h, userSelect: "none", zIndex: 1 }),
+  hourLabel: { position: "absolute", fontSize: 12, color: "#93A4BF", transform: "translateY(-50%)" },
 
   canvas: (h) => ({
     position: "relative",
     height: h,
     borderRadius: 20,
     border: "1px solid rgba(35, 48, 68, 0.9)",
-    background:
-      "linear-gradient(180deg, rgba(2,6,23,0.72) 0%, rgba(11,18,32,0.72) 100%)",
+    background: "linear-gradient(180deg, rgba(2,6,23,0.72) 0%, rgba(11,18,32,0.72) 100%)",
     overflow: "hidden",
     zIndex: 1,
   }),
-  hourLine: (top) => ({
-    position: "absolute",
-    left: 0,
-    right: 0,
-    top,
-    height: 1,
-    background: "rgba(255,255,255,0.08)",
-  }),
+  hourLine: (top) => ({ position: "absolute", left: 0, right: 0, top, height: 1, background: "rgba(255,255,255,0.08)" }),
 
   block: (top, height) => ({
     position: "absolute",
@@ -145,58 +134,19 @@ const UI = {
     height,
     borderRadius: 18,
     border: "1px solid rgba(255,255,255,0.08)",
-    background:
-      "linear-gradient(180deg, rgba(17,24,39,0.92) 0%, rgba(11,18,32,0.92) 100%)",
+    background: "linear-gradient(180deg, rgba(17,24,39,0.92) 0%, rgba(11,18,32,0.92) 100%)",
     padding: 12,
-    boxShadow:
-      "0 10px 20px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04)",
+    boxShadow: "0 10px 20px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04)",
     display: "flex",
     flexDirection: "column",
     justifyContent: "space-between",
   }),
-  blockTime: {
-    fontWeight: 700,
-    letterSpacing: "-0.01em",
-    fontSize: 13,
-    color: "#E5E7EB",
-  },
-  blockService: {
-    fontSize: 13,
-    color: "#CBD5E1",
-    marginTop: 2,
-  },
-  blockMeta: {
-    fontSize: 12,
-    color: "#93A4BF",
-    marginTop: 8,
-    display: "flex",
-    justifyContent: "space-between",
-    gap: 10,
-  },
+  blockTime: { fontWeight: 800, letterSpacing: "-0.01em", fontSize: 13, color: "#E5E7EB" },
+  blockService: { fontSize: 13, color: "#CBD5E1" },
+  blockMeta: { fontSize: 12, color: "#93A4BF" },
 };
 
-function pad2(n) {
-  return String(n).padStart(2, "0");
-}
-
-function toIsoFromDatetimeLocal(val) {
-  // val like "2026-02-19T13:00"
-  if (!val) return null;
-  const d = new Date(val);
-  if (Number.isNaN(d.getTime())) return null;
-  return d.toISOString();
-}
-
-function minutesFromISO(iso) {
-  const d = new Date(iso);
-  return d.getHours() * 60 + d.getMinutes();
-}
-
-function clamp(n, min, max) {
-  return Math.max(min, Math.min(max, n));
-}
-
-export default function DashboardTodayPage({ params }) {
+export default function Page({ params }) {
   const slug = params?.slug;
 
   const [services, setServices] = useState([]);
@@ -204,174 +154,145 @@ export default function DashboardTodayPage({ params }) {
   const [start, setStart] = useState("");
   const [error, setError] = useState("");
 
-  const [rows, setRows] = useState([]);
+  const [todayRows, setTodayRows] = useState([]);
   const [displayStartMin, setDisplayStartMin] = useState(8 * 60);
   const [displayEndMin, setDisplayEndMin] = useState(21 * 60);
 
-  const PX_PER_MIN = 2; // keep readable at 100% zoom
+  const PX_PER_MIN = 2; // timeline scale
 
-  const timelineHeight = Math.max(
-    480,
-    (displayEndMin - displayStartMin) * PX_PER_MIN
-  );
+  const timelineHeight = useMemo(() => {
+    return Math.max(300, (displayEndMin - displayStartMin) * PX_PER_MIN);
+  }, [displayStartMin, displayEndMin]);
 
-  // ---- Fetch services (robust to multiple shapes) ----
-  useEffect(() => {
+  async function loadServices() {
     if (!slug) return;
-
-    let cancelled = false;
     setError("");
+    const res = await fetch(`/api/s/${slug}/services`, { cache: "no-store" });
+    const data = await res.json().catch(() => ({}));
+    // support both {services:[...]} and {slug, services:[...]}
+    const arr = Array.isArray(data.services) ? data.services : [];
+    setServices(arr);
+  }
 
-    (async () => {
-      try {
-        const res = await fetch(`/api/s/${slug}/services`, { cache: "no-store" });
-        const data = await res.json().catch(() => ({}));
-
-        if (cancelled) return;
-
-        // Accept:
-        // { services: [...] }  OR  { slug, services: [...] }  OR  [...] (fallback)
-        const list =
-          (data && Array.isArray(data.services) && data.services) ||
-          (Array.isArray(data) && data) ||
-          [];
-
-        setServices(list);
-
-        // Keep selection valid
-        if (list.length && !list.find((s) => s.id === serviceId)) {
-          setServiceId("");
-        }
-      } catch (e) {
-        if (cancelled) return;
-        setServices([]);
-        setError(e?.message || String(e));
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slug]);
-
-  // ---- Fetch today dashboard ----
-  async function refreshToday() {
+  async function loadToday() {
     if (!slug) return;
-
     const res = await fetch(`/api/s/${slug}/dashboard/today`, { cache: "no-store" });
     const data = await res.json().catch(() => ({}));
-
-    if (!res.ok) {
-      setError(data?.error || `Failed to load (${res.status})`);
+    if (data?.error) {
+      setError(data.error);
+      setTodayRows([]);
       return;
     }
-
-    setError("");
-
-    setRows(Array.isArray(data.rows) ? data.rows : []);
+    setTodayRows(Array.isArray(data.rows) ? data.rows : []);
     if (typeof data.display_start_min === "number") setDisplayStartMin(data.display_start_min);
     if (typeof data.display_end_min === "number") setDisplayEndMin(data.display_end_min);
   }
 
   useEffect(() => {
-    refreshToday();
+    loadServices();
+    loadToday();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
 
-  // ---- Create appointment ----
+  const blocks = useMemo(() => {
+    return (todayRows || [])
+      .map((r) => {
+        const startMin = minutesFromISO(r.start_at);
+        const endMin = minutesFromISO(r.end_at);
+        if (startMin == null || endMin == null) return null;
+
+        const top = (startMin - displayStartMin) * PX_PER_MIN;
+        const height = Math.max(32, (endMin - startMin) * PX_PER_MIN);
+
+        const st = new Date(r.start_at);
+        const label = `${pad2(st.getHours())}:${pad2(st.getMinutes())}`;
+
+        return {
+          id: r.id,
+          top,
+          height,
+          startLabel: label,
+          service_name: r.service_name,
+          status: r.status,
+        };
+      })
+      .filter(Boolean)
+      .filter((b) => b.top + b.height > 0 && b.top < timelineHeight);
+  }, [todayRows, displayStartMin, timelineHeight]);
+
   async function createAppointment() {
-    setError("");
-
-    if (!slug) return;
-    if (!serviceId) {
-      setError("Bitte Service auswählen.");
-      return;
-    }
-
-    const startIso = toIsoFromDatetimeLocal(start);
-    if (!startIso) {
-      setError("Bitte Startzeit wählen.");
-      return;
-    }
-
-    // Use duration from selected service (UI) to compute end, server will also validate
-    const svc = services.find((s) => s.id === serviceId);
-    const dur = Number(svc?.duration_min || 0);
-    if (!dur) {
-      setError("Service-Dauer fehlt. Bitte anderen Service wählen.");
-      return;
-    }
-
-    const endIso = new Date(new Date(startIso).getTime() + dur * 60_000).toISOString();
-
     try {
+      setError("");
+
+      if (!serviceId) {
+        setError("Bitte Service auswählen.");
+        return;
+      }
+      if (!start) {
+        setError("Bitte Startzeit auswählen.");
+        return;
+      }
+
+      const svc = services.find((s) => s.id === serviceId);
+      const duration = Number(svc?.duration_min || 0);
+      if (!duration || duration <= 0) {
+        setError("Service-Dauer fehlt. Bitte kurz melden.");
+        return;
+      }
+
+      const startISO = toISOFromDatetimeLocal(start);
+      if (!startISO) {
+        setError("Ungültige Startzeit.");
+        return;
+      }
+
+      const startDate = new Date(startISO);
+      const endDate = new Date(startDate.getTime() + duration * 60 * 1000);
+      const endISO = endDate.toISOString();
+
       const res = await fetch(`/api/s/${slug}/appointments`, {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           service_id: serviceId,
-          start_at: startIso,
-          end_at: endIso,
-          status: "confirmed",
-          kind: "booking",
+          start_at: startISO,
+          end_at: endISO,
         }),
       });
 
       const data = await res.json().catch(() => ({}));
 
-      if (!res.ok) {
-        // handle overlap / outside hours nicely if your API returns these
-        const msg = data?.error || `Fehler (${res.status})`;
-        setError(msg);
+      // Clean DE messages (no raw DB text)
+      if (res.status === 409) {
+        setError("Zeit ist bereits belegt. Bitte andere Uhrzeit wählen.");
         return;
       }
 
-      setStart("");
-      await refreshToday();
+      if (!res.ok) {
+        // Outside hours from server
+        if (data?.code === "OUTSIDE_HOURS") {
+          setError("Außerhalb der Öffnungszeiten. Bitte andere Uhrzeit wählen.");
+          return;
+        }
+        // If server ever returns raw overlap text, still map it
+        if (String(data?.error || "").includes("no_overlapping_appointments")) {
+          setError("Zeit ist bereits belegt. Bitte andere Uhrzeit wählen.");
+          return;
+        }
+        setError(data?.error || "Fehler beim Erstellen.");
+        return;
+      }
+
+      // Success: reload today
+      await loadToday();
     } catch (e) {
       setError(e?.message || String(e));
     }
   }
 
-  // ---- Build blocks for timeline ----
-  const blocks = useMemo(() => {
-    const dayStart = displayStartMin;
-    const dayEnd = displayEndMin;
-
-    return (rows || [])
-      .map((r) => {
-        const sMin = minutesFromISO(r.start_at);
-        const eMin = minutesFromISO(r.end_at);
-        const top = (sMin - dayStart) * PX_PER_MIN;
-        const height = Math.max(26, (eMin - sMin) * PX_PER_MIN);
-
-        // only render if within display window (soft clamp)
-        const clampedTop = clamp(top, -200, (dayEnd - dayStart) * PX_PER_MIN + 200);
-
-        const startLabel = `${pad2(Math.floor(sMin / 60))}:${pad2(sMin % 60)}`;
-
-        return {
-          id: r.id,
-          top: clampedTop,
-          height,
-          startLabel,
-          service_name: r.service_name,
-          status: r.status,
-        };
-      })
-      .sort((a, b) => a.top - b.top);
-  }, [rows, displayStartMin, displayEndMin]);
-
-  const hourMarks = useMemo(() => {
-    const startHour = Math.floor(displayStartMin / 60);
-    const endHour = Math.ceil(displayEndMin / 60);
-    const arr = [];
-    for (let h = startHour; h <= endHour; h++) arr.push(h);
-    return arr;
-  }, [displayStartMin, displayEndMin]);
-
   if (!slug) return null;
+
+  const hourCount = Math.floor((displayEndMin - displayStartMin) / 60) + 1;
 
   return (
     <div style={UI.page}>
@@ -385,32 +306,20 @@ export default function DashboardTodayPage({ params }) {
         </div>
 
         <div style={UI.card}>
-          {/* Sticky controls */}
-          <div
-            style={{
-              ...UI.controlsCard,
-              position: "sticky",
-              top: 16,
-              zIndex: 50,
-              backdropFilter: "blur(8px)",
-            }}
-          >
+          <div style={UI.controlsCard}>
             <div style={UI.controlsRow}>
-              {/* IMPORTANT: wrapper z-index so native dropdown is clickable */}
-              <div style={{ position: "relative", zIndex: 60 }}>
-                <select
-                  value={serviceId}
-                  onChange={(e) => setServiceId(e.target.value)}
-                  style={{ ...UI.input, appearance: "auto" }}
-                >
-                  <option value="">Service wählen</option>
-                  {services.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <select
+                value={serviceId}
+                onChange={(e) => setServiceId(e.target.value)}
+                style={{ ...UI.input, position: "relative", zIndex: 50 }}
+              >
+                <option value="">Service wählen</option>
+                {services.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
 
               <input
                 type="datetime-local"
@@ -427,52 +336,38 @@ export default function DashboardTodayPage({ params }) {
             {error && <div style={UI.error}>{error}</div>}
           </div>
 
-          {/* Timeline */}
           <div style={UI.grid}>
-            {/* Hours column */}
             <div style={UI.hourCol(timelineHeight)}>
-              {hourMarks.map((hour) => {
-                const top = (hour * 60 - displayStartMin) * PX_PER_MIN;
+              {Array.from({ length: hourCount }).map((_, i) => {
+                const minute = displayStartMin + i * 60;
+                const hour = Math.floor(minute / 60);
+                const top = (minute - displayStartMin) * PX_PER_MIN;
                 return (
-                  <div
-                    key={hour}
-                    style={{
-                      ...UI.hourLabel,
-                      top,
-                    }}
-                  >
+                  <div key={i} style={{ ...UI.hourLabel, top }}>
                     {pad2(hour)}:00
                   </div>
                 );
               })}
             </div>
 
-            {/* Canvas */}
             <div style={UI.canvas(timelineHeight)}>
-              {/* Hour lines */}
-              {hourMarks.map((hour) => {
-                const top = (hour * 60 - displayStartMin) * PX_PER_MIN;
-                return <div key={hour} style={UI.hourLine(top)} />;
+              {Array.from({ length: hourCount }).map((_, i) => {
+                const top = i * 60 * PX_PER_MIN;
+                return <div key={i} style={UI.hourLine(top)} />;
               })}
 
-              {/* Blocks */}
               {blocks.map((b) => (
                 <div key={b.id} style={UI.block(b.top, b.height)}>
                   <div>
                     <div style={UI.blockTime}>{b.startLabel}</div>
                     <div style={UI.blockService}>{b.service_name || "Service"}</div>
                   </div>
-                  <div style={UI.blockMeta}>
-                    <div>{b.status}</div>
-                    <div />
-                  </div>
+                  <div style={UI.blockMeta}>{b.status}</div>
                 </div>
               ))}
             </div>
           </div>
         </div>
-
-        {/* hidden refresh hook (optional) */}
       </div>
     </div>
   );
