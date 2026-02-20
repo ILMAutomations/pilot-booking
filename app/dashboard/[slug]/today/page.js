@@ -24,8 +24,7 @@ function minutesFromISO(iso) {
 const UI = {
   page: {
     minHeight: "100vh",
-    background:
-      "linear-gradient(180deg, #070B14 0%, #0B1220 55%, #070B14 100%)",
+    background: "linear-gradient(180deg, #070B14 0%, #0B1220 55%, #070B14 100%)",
     color: "#E5E7EB",
     padding: "48px 20px",
     fontFamily:
@@ -36,7 +35,7 @@ const UI = {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 18,
+    marginBottom: 12,
   },
   title: { fontSize: 24, fontWeight: 700, letterSpacing: "-0.02em", margin: 0 },
   sub: { fontSize: 13, color: "#9CA3AF", marginTop: 4 },
@@ -48,12 +47,31 @@ const UI = {
     background: "rgba(17, 24, 39, 0.55)",
     color: "#C7D2FE",
   },
+
+  tabs: {
+    display: "flex",
+    gap: 8,
+    marginBottom: 16,
+  },
+  tab: (active) => ({
+    textDecoration: "none",
+    display: "inline-flex",
+    alignItems: "center",
+    height: 34,
+    padding: "0 12px",
+    borderRadius: 999,
+    border: "1px solid rgba(35, 48, 68, 0.9)",
+    background: active ? "rgba(59, 130, 246, 0.16)" : "rgba(2, 6, 23, 0.45)",
+    color: active ? "#DBEAFE" : "#CBD5E1",
+    fontSize: 13,
+    fontWeight: 650,
+  }),
+
   card: {
     borderRadius: 18,
     border: "1px solid rgba(35, 48, 68, 0.9)",
     background: "rgba(11, 18, 32, 0.72)",
-    boxShadow:
-      "0 12px 30px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.03)",
+    boxShadow: "0 12px 30px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.03)",
     backdropFilter: "blur(6px)",
     padding: 18,
   },
@@ -114,37 +132,19 @@ const UI = {
     alignItems: "start",
     marginTop: 12,
   },
-  hourCol: (h) => ({
-    position: "relative",
-    height: h,
-    userSelect: "none",
-    zIndex: 1,
-  }),
-  hourLabel: {
-    position: "absolute",
-    fontSize: 12,
-    color: "#93A4BF",
-    transform: "translateY(-50%)",
-  },
+  hourCol: (h) => ({ position: "relative", height: h, userSelect: "none", zIndex: 1 }),
+  hourLabel: { position: "absolute", fontSize: 12, color: "#93A4BF", transform: "translateY(-50%)" },
 
   canvas: (h) => ({
     position: "relative",
     height: h,
     borderRadius: 20,
     border: "1px solid rgba(35, 48, 68, 0.9)",
-    background:
-      "linear-gradient(180deg, rgba(2,6,23,0.72) 0%, rgba(11,18,32,0.72) 100%)",
+    background: "linear-gradient(180deg, rgba(2,6,23,0.72) 0%, rgba(11,18,32,0.72) 100%)",
     overflow: "hidden",
     zIndex: 1,
   }),
-  hourLine: (top) => ({
-    position: "absolute",
-    left: 0,
-    right: 0,
-    top,
-    height: 1,
-    background: "rgba(255,255,255,0.08)",
-  }),
+  hourLine: (top) => ({ position: "absolute", left: 0, right: 0, top, height: 1, background: "rgba(255,255,255,0.08)" }),
 
   block: (top, height) => ({
     position: "absolute",
@@ -154,50 +154,17 @@ const UI = {
     height,
     borderRadius: 18,
     border: "1px solid rgba(255,255,255,0.08)",
-    background:
-      "linear-gradient(180deg, rgba(17,24,39,0.92) 0%, rgba(11,18,32,0.92) 100%)",
+    background: "linear-gradient(180deg, rgba(17,24,39,0.92) 0%, rgba(11,18,32,0.92) 100%)",
     padding: 12,
-    boxShadow:
-      "0 10px 20px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04)",
+    boxShadow: "0 10px 20px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04)",
     display: "flex",
     flexDirection: "column",
     justifyContent: "space-between",
   }),
-  blockTime: {
-    fontWeight: 800,
-    letterSpacing: "-0.01em",
-    fontSize: 13,
-    color: "#E5E7EB",
-  },
+  blockTime: { fontWeight: 800, letterSpacing: "-0.01em", fontSize: 13, color: "#E5E7EB" },
   blockService: { fontSize: 13, color: "#CBD5E1" },
   blockMeta: { fontSize: 12, color: "#93A4BF" },
 };
-
-function mapCreateError(resStatus, data) {
-  // Always return calm DE message (no raw DB errors)
-  if (resStatus === 409) {
-    return "Zeit ist bereits belegt. Bitte andere Uhrzeit wählen.";
-  }
-
-  // outside hours (new API: error="outside_hours", old: code="OUTSIDE_HOURS")
-  if (data?.error === "outside_hours" || data?.code === "OUTSIDE_HOURS") {
-    return "Außerhalb der Öffnungszeiten. Bitte andere Uhrzeit wählen.";
-  }
-
-  // if server returned overlap as error string (fallback)
-  const raw = String(data?.error || data?.message || "");
-  if (raw.includes("no_overlapping_appointments") || raw.includes("23P01")) {
-    return "Zeit ist bereits belegt. Bitte andere Uhrzeit wählen.";
-  }
-
-  // internal error -> generic
-  if (resStatus >= 500 || data?.error === "internal_error") {
-    return "Technischer Fehler. Bitte erneut versuchen.";
-  }
-
-  // generic fallback
-  return raw || "Fehler beim Erstellen.";
-}
 
 export default function Page({ params }) {
   const slug = params?.slug;
@@ -211,7 +178,7 @@ export default function Page({ params }) {
   const [displayStartMin, setDisplayStartMin] = useState(8 * 60);
   const [displayEndMin, setDisplayEndMin] = useState(21 * 60);
 
-  const PX_PER_MIN = 2;
+  const PX_PER_MIN = 2; // timeline scale
 
   const timelineHeight = useMemo(() => {
     return Math.max(300, (displayEndMin - displayStartMin) * PX_PER_MIN);
@@ -228,29 +195,16 @@ export default function Page({ params }) {
 
   async function loadToday() {
     if (!slug) return;
-
-    const res = await fetch(`/api/s/${slug}/dashboard/today`, {
-      cache: "no-store",
-    });
-
+    const res = await fetch(`/api/s/${slug}/dashboard/today`, { cache: "no-store" });
     const data = await res.json().catch(() => ({}));
-
-    if (!res.ok || data?.error) {
-      // never show raw internal errors
-      if (res.status >= 500 || data?.error === "internal_error") {
-        setError("Technischer Fehler. Bitte erneut versuchen.");
-      } else {
-        setError(String(data?.error || "Fehler beim Laden."));
-      }
+    if (data?.error) {
+      setError(data.error);
       setTodayRows([]);
       return;
     }
-
     setTodayRows(Array.isArray(data.rows) ? data.rows : []);
-    if (typeof data.display_start_min === "number")
-      setDisplayStartMin(data.display_start_min);
-    if (typeof data.display_end_min === "number")
-      setDisplayEndMin(data.display_end_min);
+    if (typeof data.display_start_min === "number") setDisplayStartMin(data.display_start_min);
+    if (typeof data.display_end_min === "number") setDisplayEndMin(data.display_end_min);
   }
 
   useEffect(() => {
@@ -298,18 +252,16 @@ export default function Page({ params }) {
         return;
       }
 
-      const startISO = toISOFromDatetimeLocal(start);
-      if (!startISO) {
-        setError("Ungültige Startzeit.");
-        return;
-      }
-
-      // We keep end_at calculation client-side for UI smoothness,
-      // but server is the source of truth (it also calculates/validates).
       const svc = services.find((s) => s.id === serviceId);
       const duration = Number(svc?.duration_min || 0);
       if (!duration || duration <= 0) {
         setError("Service-Dauer fehlt. Bitte kurz melden.");
+        return;
+      }
+
+      const startISO = toISOFromDatetimeLocal(start);
+      if (!startISO) {
+        setError("Ungültige Startzeit.");
         return;
       }
 
@@ -329,16 +281,27 @@ export default function Page({ params }) {
 
       const data = await res.json().catch(() => ({}));
 
-      if (!res.ok) {
-        setError(mapCreateError(res.status, data));
+      if (res.status === 409) {
+        setError("Zeit ist bereits belegt. Bitte andere Uhrzeit wählen.");
         return;
       }
 
-      // Success: reload today + keep selected service
+      if (!res.ok) {
+        if (data?.code === "OUTSIDE_HOURS") {
+          setError("Außerhalb der Öffnungszeiten. Bitte andere Uhrzeit wählen.");
+          return;
+        }
+        if (String(data?.error || "").includes("no_overlapping_appointments")) {
+          setError("Zeit ist bereits belegt. Bitte andere Uhrzeit wählen.");
+          return;
+        }
+        setError(data?.error || "Fehler beim Erstellen.");
+        return;
+      }
+
       await loadToday();
-    } catch (_e) {
-      // never leak raw error
-      setError("Technischer Fehler. Bitte erneut versuchen.");
+    } catch (e) {
+      setError(e?.message || String(e));
     }
   }
 
@@ -355,6 +318,15 @@ export default function Page({ params }) {
             <div style={UI.sub}>Salon: {slug}</div>
           </div>
           <div style={UI.badge}>Pilot</div>
+        </div>
+
+        <div style={UI.tabs}>
+          <a href={`/dashboard/${slug}/today`} style={UI.tab(true)}>
+            Today
+          </a>
+          <a href={`/dashboard/${slug}/overview`} style={UI.tab(false)}>
+            Overview
+          </a>
         </div>
 
         <div style={UI.card}>
@@ -412,9 +384,7 @@ export default function Page({ params }) {
                 <div key={b.id} style={UI.block(b.top, b.height)}>
                   <div>
                     <div style={UI.blockTime}>{b.startLabel}</div>
-                    <div style={UI.blockService}>
-                      {b.service_name || "Service"}
-                    </div>
+                    <div style={UI.blockService}>{b.service_name || "Service"}</div>
                   </div>
                   <div style={UI.blockMeta}>{b.status}</div>
                 </div>
