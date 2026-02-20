@@ -1,14 +1,17 @@
-import { query } from "../../../lib/db";
-
-
+import { NextResponse } from "next/server";
+import { query } from "@/lib/db";
 
 export async function GET() {
   try {
-    await query("SELECT 1");
-    return Response.json({ status: "ok", db: true });
-  } catch (e) {
-    return Response.json(
-      { status: "error", db: false, error: String(e.message || e) },
+    await query("select 1");
+    return NextResponse.json({ status: "ok", db: true });
+  } catch (error) {
+    console.error("[API_ERROR]", {
+      route: "/api/health",
+      message: error?.message,
+    });
+    return NextResponse.json(
+      { status: "error", db: false, error: "db_unreachable" },
       { status: 500 }
     );
   }
