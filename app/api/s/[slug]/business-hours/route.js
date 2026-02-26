@@ -1,80 +1,100 @@
 import { query } from "@/lib/db";
 
 export async function GET(req, { params }) {
-  const slug = params.slug;
+  const slug = params?.slug;
 
   try {
-    const salonRes = await query(
-      "select id from salons where slug = $1",
-      [slug]
-    );
+    if (!slug) return Response.json({ error: "Missing slug" }, { status: 400 });
 
+    const salonRes = await query("select id from public.salons where slug = $1", [slug]);
     if (!salonRes.rowCount) {
       return Response.json({ error: "Salon not found" }, { status: 404 });
     }
-
     const salonId = salonRes.rows[0].id;
 
-    const hours = await query(
-      "select id, weekday, open_time, close_time from business_hours where salon_id = $1 order by weekday",
+    const hoursRes = await query(
+      `
+      select id, weekday, open_time, close_time, created_at
+      from public.business_hours
+      where salon_id = $1
+      order by weekday asc
+      `,
       [salonId]
     );
 
-    return Response.json({ hours: hours.rows });
+    return Response.json({ slug, salon_id: salonId, hours: hoursRes.rows });
   } catch (error) {
     console.error("[API_ERROR]", {
-      route: "/api/s/[slug]/business-hours",
+      route: "/api/s/[slug]/business-hours (GET)",
       slug,
-      message: error.message,
+      message: error?.message,
     });
-
-    return Response.json(
-      { error: "Technischer Fehler. Bitte erneut versuchen." },
-      { status: 500 }
-    );
+    return Response.json({ error: "Server error" }, { status: 500 });
   }
 }
 
 export async function POST(req, { params }) {
-  const slug = params.slug;
+  const slug = params?.slug;
 
   try {
-    const body = await req.json();
-    const { hours } = body;
+    if (!slug) return Response.json({ error: "Missing slug" }, { status: 400 });
 
-    const salonRes = await query(
-      "select id from salons where slug = $1",
-      [slug]
-    );
+    const body = await req.json().catch(() => ({}));
+    const hours = Array.isArray(body?.hours) ? body.hours : [];
 
+    const salonRes = await query("select id from public.salons where slug = $1", [slug]);
     if (!salonRes.rowCount) {
       return Response.json({ error: "Salon not found" }, { status: 404 });
     }
-
     const salonId = salonRes.rows[0].id;
 
-    for (const row of hours) {
+    // We accept 0..6 weekdays. Empty open/close means "closed" => no row stored.
+    const cleaned = hours
+      .map((h) => ({
+        weekday: Number(h?.weekday),
+        open_time: (h?.open_time || "").trim(),
+        close_time: (h?.close_time || "").trim(),
+      }))
+      .filter((h) => Number.isFinite(h.weekday) && h.weekday >= 0 && h.weekday <= 6);
+
+    // Store only rows that have both times present (valid open day)
+    const toStore = cleaned.filter((h) => h.open_time && h.close_time);
+
+    await query("begin");
+
+    // Hard reset for salon (safe & simple for v1)
+    await query("delete from public.business_hours where salon_id = $1", [salonId]);
+
+    for (const h of toStore) {
       await query(
-        `update business_hours
-         set open_time = $1,
-             close_time = $2
-         where id = $3
-           and salon_id = $4`,
-        [row.open_time, row.close_time, row.id, salonId]
+        `
+        insert into public.business_hours (salon_id, weekday, open_time, close_time)
+        values ($1, $2, $3, $4)
+        `,
+        [salonId, h.weekday, h.open_time, h.close_time]
       );
     }
 
-    return Response.json({ success: true });
-  } catch (error) {
-    console.error("[API_ERROR]", {
-      route: "/api/s/[slug]/business-hours",
+    await query("commit");
+
+    return Response.json({
+      ok: true,
       slug,
-      message: error.message,
+      salon_id: salonId,
+      stored_count: toStore.length,
+      note: "Empty days treated as closed (no row stored).",
+    });
+  } catch (error) {
+    try {
+      await query("rollback");
+    } catch {}
+
+    console.error("[API_ERROR]", {
+      route: "/api/s/[slug]/business-hours (POST)",
+      slug,
+      message: error?.message,
     });
 
-    return Response.json(
-      { error: "Technischer Fehler. Bitte erneut versuchen." },
-      { status: 500 }
-    );
+    return Response.json({ error: "Server error" }, { status: 500 });
   }
 }
