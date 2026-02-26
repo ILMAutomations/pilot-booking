@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 function pad2(n) {
@@ -8,6 +7,7 @@ function pad2(n) {
 }
 
 function toISOFromDatetimeLocal(v) {
+  // v like "2026-02-19T15:00"
   if (!v) return null;
   const d = new Date(v);
   if (isNaN(d.getTime())) return null;
@@ -31,7 +31,6 @@ const UI = {
       'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji"',
   },
   shell: { maxWidth: 1100, margin: "0 auto" },
-
   headerRow: {
     display: "flex",
     alignItems: "center",
@@ -48,37 +47,14 @@ const UI = {
     background: "rgba(17, 24, 39, 0.55)",
     color: "#C7D2FE",
   },
-
   card: {
     borderRadius: 18,
     border: "1px solid rgba(35, 48, 68, 0.9)",
     background: "rgba(11, 18, 32, 0.72)",
-    boxShadow:
-      "0 12px 30px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.03)",
+    boxShadow: "0 12px 30px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.03)",
     backdropFilter: "blur(6px)",
     padding: 18,
   },
-
-  tabsRow: {
-    display: "flex",
-    gap: 10,
-    alignItems: "center",
-    marginBottom: 14,
-  },
-  tab: (active) => ({
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 8,
-    height: 34,
-    padding: "0 12px",
-    borderRadius: 999,
-    border: active ? "1px solid rgba(59, 130, 246, 0.55)" : "1px solid rgba(35,48,68,0.9)",
-    background: active ? "rgba(59, 130, 246, 0.16)" : "rgba(2,6,23,0.35)",
-    color: active ? "#DBEAFE" : "#CBD5E1",
-    fontWeight: 650,
-    fontSize: 13,
-    textDecoration: "none",
-  }),
 
   controlsCard: {
     borderRadius: 16,
@@ -90,40 +66,24 @@ const UI = {
     zIndex: 40,
     backdropFilter: "blur(6px)",
   },
+
   controlsRow: {
     display: "grid",
     gridTemplateColumns: "1.2fr 1fr auto",
     gap: 10,
     alignItems: "center",
   },
-
   input: {
     width: "100%",
     height: 40,
     padding: "0 12px",
     borderRadius: 12,
-    border: "1px solid rgba(35, 48, 68, 0.95)",
-    background: "rgba(2, 6, 23, 0.72)",
+    border: "1px solid rgba(148, 163, 184, 0.30)",
+    background: "rgba(2, 6, 23, 0.70)",
     color: "#E5E7EB",
     outline: "none",
-    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)",
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
   },
-
-  // Datetime input visibility boost (low risk)
-  dateInput: {
-    width: "100%",
-    height: 40,
-    padding: "0 12px",
-    borderRadius: 12,
-    border: "1px solid rgba(148, 163, 184, 0.35)",
-    background:
-      "linear-gradient(180deg, rgba(2,6,23,0.72) 0%, rgba(11,18,32,0.72) 100%)",
-    color: "#E5E7EB",
-    outline: "none",
-    boxShadow:
-      "0 0 0 2px rgba(59,130,246,0.10), inset 0 1px 0 rgba(255,255,255,0.05)",
-  },
-
   button: {
     height: 40,
     padding: "0 16px",
@@ -131,7 +91,7 @@ const UI = {
     border: "1px solid rgba(59, 130, 246, 0.45)",
     background: "rgba(59, 130, 246, 0.16)",
     color: "#DBEAFE",
-    fontWeight: 700,
+    fontWeight: 600,
     cursor: "pointer",
     boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
   },
@@ -154,31 +114,18 @@ const UI = {
     marginTop: 12,
   },
   hourCol: (h) => ({ position: "relative", height: h, userSelect: "none", zIndex: 1 }),
-  hourLabel: {
-    position: "absolute",
-    fontSize: 12,
-    color: "#93A4BF",
-    transform: "translateY(-50%)",
-  },
+  hourLabel: { position: "absolute", fontSize: 12, color: "#93A4BF", transform: "translateY(-50%)" },
 
   canvas: (h) => ({
     position: "relative",
     height: h,
     borderRadius: 20,
     border: "1px solid rgba(35, 48, 68, 0.9)",
-    background:
-      "linear-gradient(180deg, rgba(2,6,23,0.72) 0%, rgba(11,18,32,0.72) 100%)",
+    background: "linear-gradient(180deg, rgba(2,6,23,0.72) 0%, rgba(11,18,32,0.72) 100%)",
     overflow: "hidden",
     zIndex: 1,
   }),
-  hourLine: (top) => ({
-    position: "absolute",
-    left: 0,
-    right: 0,
-    top,
-    height: 1,
-    background: "rgba(255,255,255,0.08)",
-  }),
+  hourLine: (top) => ({ position: "absolute", left: 0, right: 0, top, height: 1, background: "rgba(255,255,255,0.08)" }),
 
   block: (top, height) => ({
     position: "absolute",
@@ -188,11 +135,9 @@ const UI = {
     height,
     borderRadius: 18,
     border: "1px solid rgba(255,255,255,0.08)",
-    background:
-      "linear-gradient(180deg, rgba(17,24,39,0.92) 0%, rgba(11,18,32,0.92) 100%)",
+    background: "linear-gradient(180deg, rgba(17,24,39,0.92) 0%, rgba(11,18,32,0.92) 100%)",
     padding: 12,
-    boxShadow:
-      "0 10px 20px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04)",
+    boxShadow: "0 10px 20px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04)",
     display: "flex",
     flexDirection: "column",
     justifyContent: "space-between",
@@ -200,7 +145,32 @@ const UI = {
   blockTime: { fontWeight: 800, letterSpacing: "-0.01em", fontSize: 13, color: "#E5E7EB" },
   blockService: { fontSize: 13, color: "#CBD5E1" },
   blockMeta: { fontSize: 12, color: "#93A4BF" },
+
+  // Hours editor
+  sectionTitle: { fontSize: 14, fontWeight: 700, marginTop: 18, marginBottom: 10, color: "#E5E7EB" },
+  hoursRow: {
+    display: "grid",
+    gridTemplateColumns: "90px 1fr 1fr",
+    gap: 10,
+    alignItems: "center",
+    padding: "8px 0",
+    borderBottom: "1px solid rgba(255,255,255,0.06)",
+  },
+  hoursDay: { fontSize: 13, color: "#CBD5E1" },
+  hoursTime: {
+    height: 36,
+    padding: "0 10px",
+    borderRadius: 12,
+    border: "1px solid rgba(148, 163, 184, 0.22)",
+    background: "rgba(2, 6, 23, 0.55)",
+    color: "#E5E7EB",
+    outline: "none",
+  },
+  saveRow: { display: "flex", gap: 10, alignItems: "center", marginTop: 12 },
+  saveHint: { fontSize: 12, color: "#93A4BF" },
 };
+
+const DAY_LABELS = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
 
 export default function Page({ params }) {
   const slug = params?.slug;
@@ -213,6 +183,11 @@ export default function Page({ params }) {
   const [todayRows, setTodayRows] = useState([]);
   const [displayStartMin, setDisplayStartMin] = useState(8 * 60);
   const [displayEndMin, setDisplayEndMin] = useState(21 * 60);
+
+  // Business hours editor state
+  const [hours, setHours] = useState([]);
+  const [hoursError, setHoursError] = useState("");
+  const [hoursSaved, setHoursSaved] = useState("");
 
   const PX_PER_MIN = 2;
 
@@ -232,20 +207,66 @@ export default function Page({ params }) {
     if (!slug) return;
     const res = await fetch(`/api/s/${slug}/dashboard/today`, { cache: "no-store" });
     const data = await res.json().catch(() => ({}));
+
     if (data?.error) {
       setError(data.error);
       setTodayRows([]);
       return;
     }
+
     setTodayRows(Array.isArray(data.rows) ? data.rows : []);
     if (typeof data.display_start_min === "number") setDisplayStartMin(data.display_start_min);
     if (typeof data.display_end_min === "number") setDisplayEndMin(data.display_end_min);
   }
 
+  async function loadHours() {
+    if (!slug) return;
+    setHoursError("");
+    setHoursSaved("");
+
+    const res = await fetch(`/api/s/${slug}/business-hours`, { cache: "no-store" });
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      setHoursError(data?.error || "Fehler beim Laden der Öffnungszeiten.");
+      setHours([]);
+      return;
+    }
+
+    setHours(Array.isArray(data.hours) ? data.hours : []);
+  }
+
+  async function saveHours() {
+    try {
+      if (!slug) return;
+      setHoursError("");
+      setHoursSaved("");
+
+      const res = await fetch(`/api/s/${slug}/business-hours`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ hours }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setHoursError(data?.error || "Fehler beim Speichern.");
+        return;
+      }
+
+      setHoursSaved("Gespeichert.");
+      // reload today display window (optional sanity)
+      await loadToday();
+    } catch {
+      setHoursError("Technischer Fehler.");
+    }
+  }
+
   useEffect(() => {
-    setError("");
     loadServices();
     loadToday();
+    loadHours();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
 
@@ -279,15 +300,27 @@ export default function Page({ params }) {
     try {
       setError("");
 
-      if (!serviceId) return setError("Bitte Service auswählen.");
-      if (!start) return setError("Bitte Startzeit auswählen.");
+      if (!serviceId) {
+        setError("Bitte Service auswählen.");
+        return;
+      }
+      if (!start) {
+        setError("Bitte Startzeit auswählen.");
+        return;
+      }
 
       const svc = services.find((s) => s.id === serviceId);
       const duration = Number(svc?.duration_min || 0);
-      if (!duration || duration <= 0) return setError("Service-Dauer fehlt. Bitte kurz melden.");
+      if (!duration || duration <= 0) {
+        setError("Service-Dauer fehlt. Bitte kurz melden.");
+        return;
+      }
 
       const startISO = toISOFromDatetimeLocal(start);
-      if (!startISO) return setError("Ungültige Startzeit.");
+      if (!startISO) {
+        setError("Ungültige Startzeit.");
+        return;
+      }
 
       const startDate = new Date(startISO);
       const endDate = new Date(startDate.getTime() + duration * 60 * 1000);
@@ -296,7 +329,11 @@ export default function Page({ params }) {
       const res = await fetch(`/api/s/${slug}/appointments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ service_id: serviceId, start_at: startISO, end_at: endISO }),
+        body: JSON.stringify({
+          service_id: serviceId,
+          start_at: startISO,
+          end_at: endISO,
+        }),
       });
 
       const data = await res.json().catch(() => ({}));
@@ -315,13 +352,12 @@ export default function Page({ params }) {
           setError("Zeit ist bereits belegt. Bitte andere Uhrzeit wählen.");
           return;
         }
-        // generic
-        setError(data?.error || "Technischer Fehler. Bitte erneut versuchen.");
+        setError(data?.error || "Fehler beim Erstellen.");
         return;
       }
 
       await loadToday();
-    } catch (e) {
+    } catch {
       setError("Technischer Fehler. Bitte erneut versuchen.");
     }
   }
@@ -342,15 +378,7 @@ export default function Page({ params }) {
         </div>
 
         <div style={UI.card}>
-          <div style={UI.tabsRow}>
-            <Link href={`/dashboard/${slug}/today`} style={UI.tab(true)}>
-              Today
-            </Link>
-            <Link href={`/dashboard/${slug}/overview`} style={UI.tab(false)}>
-              Overview
-            </Link>
-          </div>
-
+          {/* Controls */}
           <div style={UI.controlsCard}>
             <div style={UI.controlsRow}>
               <select
@@ -370,7 +398,7 @@ export default function Page({ params }) {
                 type="datetime-local"
                 value={start}
                 onChange={(e) => setStart(e.target.value)}
-                style={UI.dateInput}
+                style={UI.input}
               />
 
               <button onClick={createAppointment} style={UI.button}>
@@ -381,6 +409,7 @@ export default function Page({ params }) {
             {error && <div style={UI.error}>{error}</div>}
           </div>
 
+          {/* Timeline */}
           <div style={UI.grid}>
             <div style={UI.hourCol(timelineHeight)}>
               {Array.from({ length: hourCount }).map((_, i) => {
@@ -411,6 +440,56 @@ export default function Page({ params }) {
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* Business Hours Editor */}
+          <div style={{ marginTop: 18 }}>
+            <div style={UI.sectionTitle}>Öffnungszeiten (editierbar)</div>
+
+            {hours.length === 0 ? (
+              <div style={UI.saveHint}>
+                Keine Öffnungszeiten gefunden. (Business Hours fehlen oder API-Fehler)
+              </div>
+            ) : (
+              <div>
+                {hours.map((h) => (
+                  <div key={h.id} style={UI.hoursRow}>
+                    <div style={UI.hoursDay}>{DAY_LABELS[h.weekday] ?? h.weekday}</div>
+
+                    <input
+                      type="time"
+                      value={h.open_time || ""}
+                      onChange={(e) =>
+                        setHours((prev) =>
+                          prev.map((x) => (x.id === h.id ? { ...x, open_time: e.target.value } : x))
+                        )
+                      }
+                      style={UI.hoursTime}
+                    />
+
+                    <input
+                      type="time"
+                      value={h.close_time || ""}
+                      onChange={(e) =>
+                        setHours((prev) =>
+                          prev.map((x) => (x.id === h.id ? { ...x, close_time: e.target.value } : x))
+                        )
+                      }
+                      style={UI.hoursTime}
+                    />
+                  </div>
+                ))}
+
+                <div style={UI.saveRow}>
+                  <button onClick={saveHours} style={UI.button}>
+                    Speichern
+                  </button>
+                  {hoursSaved && <div style={UI.saveHint}>{hoursSaved}</div>}
+                </div>
+
+                {hoursError && <div style={UI.error}>{hoursError}</div>}
+              </div>
+            )}
           </div>
         </div>
       </div>
