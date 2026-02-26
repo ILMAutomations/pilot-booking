@@ -19,17 +19,27 @@ function minutesFromISO(iso) {
   return d.getHours() * 60 + d.getMinutes();
 }
 
-const DAY_LABELS = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
+// ISO weekday: 1..7 (Mon..Sun)
+const ISO_DAY_LABELS = {
+  1: "Mo",
+  2: "Di",
+  3: "Mi",
+  4: "Do",
+  5: "Fr",
+  6: "Sa",
+  7: "So",
+};
 
 function normalizeHoursForUI(hoursFromApi) {
-  // Ensure 7 rows (0..6). Missing weekdays become editable "closed" rows.
+  // Ensure 7 rows (1..7). Missing weekdays become editable "closed" rows.
   const byWeekday = new Map();
   (Array.isArray(hoursFromApi) ? hoursFromApi : []).forEach((h) => {
-    if (typeof h?.weekday === "number") byWeekday.set(h.weekday, h);
+    const wd = Number(h?.weekday);
+    if (Number.isFinite(wd)) byWeekday.set(wd, h);
   });
 
   const normalized = [];
-  for (let weekday = 0; weekday <= 6; weekday++) {
+  for (let weekday = 1; weekday <= 7; weekday++) {
     const existing = byWeekday.get(weekday);
     if (existing) {
       normalized.push({
@@ -343,7 +353,6 @@ export default function Page({ params }) {
       setHoursError("");
       setHoursSaved("");
 
-      // send exactly 7 weekdays; API will store only valid time ranges, empty => closed (no row)
       const res = await fetch(`/api/s/${slug}/business-hours`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -358,8 +367,8 @@ export default function Page({ params }) {
       }
 
       setHoursSaved("Gespeichert.");
-      await loadHours(); // reload to reflect DB truth
-      await loadToday(); // refresh display window
+      await loadHours();
+      await loadToday();
     } catch {
       setHoursError("Technischer Fehler.");
     }
@@ -480,7 +489,7 @@ export default function Page({ params }) {
         </div>
 
         <div style={UI.card}>
-          {/* Tabs (RESTORE) */}
+          {/* Tabs */}
           <div style={UI.tabsRow}>
             <a href={`/dashboard/${slug}/today`} style={UI.tab(true)}>
               Today
@@ -562,7 +571,7 @@ export default function Page({ params }) {
               {hours.map((h) => (
                 <div key={h.id} style={UI.hoursRow}>
                   <div style={UI.hoursDay}>
-                    {DAY_LABELS[h.weekday] ?? `Tag ${h.weekday}`}
+                    {ISO_DAY_LABELS[h.weekday] ?? `Tag ${h.weekday}`}
                   </div>
 
                   <input
