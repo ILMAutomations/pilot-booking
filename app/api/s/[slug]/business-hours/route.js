@@ -48,21 +48,20 @@ export async function POST(req, { params }) {
     }
     const salonId = salonRes.rows[0].id;
 
-    // We accept 0..6 weekdays. Empty open/close means "closed" => no row stored.
+    // ISO weekday: 1..7 (Mon..Sun)
+    // Empty open/close => closed => no row stored.
     const cleaned = hours
       .map((h) => ({
         weekday: Number(h?.weekday),
         open_time: (h?.open_time || "").trim(),
         close_time: (h?.close_time || "").trim(),
       }))
-      .filter((h) => Number.isFinite(h.weekday) && h.weekday >= 0 && h.weekday <= 6);
+      .filter((h) => Number.isFinite(h.weekday) && h.weekday >= 1 && h.weekday <= 7);
 
-    // Store only rows that have both times present (valid open day)
     const toStore = cleaned.filter((h) => h.open_time && h.close_time);
 
     await query("begin");
 
-    // Hard reset for salon (safe & simple for v1)
     await query("delete from public.business_hours where salon_id = $1", [salonId]);
 
     for (const h of toStore) {
@@ -82,7 +81,7 @@ export async function POST(req, { params }) {
       slug,
       salon_id: salonId,
       stored_count: toStore.length,
-      note: "Empty days treated as closed (no row stored).",
+      note: "ISO weekday used (1=Mon .. 7=Sun). Empty days treated as closed (no row stored).",
     });
   } catch (error) {
     try {
