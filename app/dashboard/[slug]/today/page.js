@@ -7,7 +7,6 @@ function pad2(n) {
 }
 
 function toISOFromDatetimeLocal(v) {
-  // v like "2026-02-19T15:00"
   if (!v) return null;
   const d = new Date(v);
   if (isNaN(d.getTime())) return null;
@@ -20,11 +19,43 @@ function minutesFromISO(iso) {
   return d.getHours() * 60 + d.getMinutes();
 }
 
+const DAY_LABELS = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
+
+function normalizeHoursForUI(hoursFromApi) {
+  // Ensure 7 rows (0..6). Missing weekdays become editable "closed" rows.
+  const byWeekday = new Map();
+  (Array.isArray(hoursFromApi) ? hoursFromApi : []).forEach((h) => {
+    if (typeof h?.weekday === "number") byWeekday.set(h.weekday, h);
+  });
+
+  const normalized = [];
+  for (let weekday = 0; weekday <= 6; weekday++) {
+    const existing = byWeekday.get(weekday);
+    if (existing) {
+      normalized.push({
+        id: existing.id, // real DB id
+        weekday,
+        open_time: existing.open_time || "",
+        close_time: existing.close_time || "",
+      });
+    } else {
+      normalized.push({
+        id: `new-${weekday}`, // UI-only id
+        weekday,
+        open_time: "",
+        close_time: "",
+      });
+    }
+  }
+  return normalized;
+}
+
 // ====== UI THEME (Dark, calm, owner-tool) ======
 const UI = {
   page: {
     minHeight: "100vh",
-    background: "linear-gradient(180deg, #070B14 0%, #0B1220 55%, #070B14 100%)",
+    background:
+      "linear-gradient(180deg, #070B14 0%, #0B1220 55%, #070B14 100%)",
     color: "#E5E7EB",
     padding: "48px 20px",
     fontFamily:
@@ -35,7 +66,7 @@ const UI = {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 18,
+    marginBottom: 14,
   },
   title: { fontSize: 24, fontWeight: 700, letterSpacing: "-0.02em", margin: 0 },
   sub: { fontSize: 13, color: "#9CA3AF", marginTop: 4 },
@@ -51,10 +82,29 @@ const UI = {
     borderRadius: 18,
     border: "1px solid rgba(35, 48, 68, 0.9)",
     background: "rgba(11, 18, 32, 0.72)",
-    boxShadow: "0 12px 30px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.03)",
+    boxShadow:
+      "0 12px 30px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.03)",
     backdropFilter: "blur(6px)",
     padding: 18,
   },
+
+  // Tabs
+  tabsRow: { display: "flex", gap: 10, marginBottom: 14 },
+  tab: (active) => ({
+    padding: "8px 12px",
+    borderRadius: 999,
+    border: active
+      ? "1px solid rgba(59, 130, 246, 0.55)"
+      : "1px solid rgba(255,255,255,0.10)",
+    background: active ? "rgba(59, 130, 246, 0.14)" : "rgba(2, 6, 23, 0.35)",
+    color: active ? "#DBEAFE" : "#E5E7EB",
+    fontSize: 13,
+    fontWeight: 600,
+    textDecoration: "none",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 8,
+  }),
 
   controlsCard: {
     borderRadius: 16,
@@ -73,17 +123,19 @@ const UI = {
     gap: 10,
     alignItems: "center",
   },
+
   input: {
     width: "100%",
     height: 40,
     padding: "0 12px",
     borderRadius: 12,
-    border: "1px solid rgba(148, 163, 184, 0.30)",
-    background: "rgba(2, 6, 23, 0.70)",
+    border: "1px solid rgba(148, 163, 184, 0.32)",
+    background: "rgba(2, 6, 23, 0.75)",
     color: "#E5E7EB",
     outline: "none",
-    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06)",
   },
+
   button: {
     height: 40,
     padding: "0 16px",
@@ -105,6 +157,15 @@ const UI = {
     color: "#FCA5A5",
     fontSize: 13,
   },
+  ok: {
+    marginTop: 10,
+    padding: "10px 12px",
+    borderRadius: 12,
+    border: "1px solid rgba(34, 197, 94, 0.35)",
+    background: "rgba(20, 83, 45, 0.20)",
+    color: "#86EFAC",
+    fontSize: 13,
+  },
 
   grid: {
     display: "grid",
@@ -113,19 +174,37 @@ const UI = {
     alignItems: "start",
     marginTop: 12,
   },
-  hourCol: (h) => ({ position: "relative", height: h, userSelect: "none", zIndex: 1 }),
-  hourLabel: { position: "absolute", fontSize: 12, color: "#93A4BF", transform: "translateY(-50%)" },
+  hourCol: (h) => ({
+    position: "relative",
+    height: h,
+    userSelect: "none",
+    zIndex: 1,
+  }),
+  hourLabel: {
+    position: "absolute",
+    fontSize: 12,
+    color: "#93A4BF",
+    transform: "translateY(-50%)",
+  },
 
   canvas: (h) => ({
     position: "relative",
     height: h,
     borderRadius: 20,
     border: "1px solid rgba(35, 48, 68, 0.9)",
-    background: "linear-gradient(180deg, rgba(2,6,23,0.72) 0%, rgba(11,18,32,0.72) 100%)",
+    background:
+      "linear-gradient(180deg, rgba(2,6,23,0.72) 0%, rgba(11,18,32,0.72) 100%)",
     overflow: "hidden",
     zIndex: 1,
   }),
-  hourLine: (top) => ({ position: "absolute", left: 0, right: 0, top, height: 1, background: "rgba(255,255,255,0.08)" }),
+  hourLine: (top) => ({
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top,
+    height: 1,
+    background: "rgba(255,255,255,0.08)",
+  }),
 
   block: (top, height) => ({
     position: "absolute",
@@ -135,19 +214,32 @@ const UI = {
     height,
     borderRadius: 18,
     border: "1px solid rgba(255,255,255,0.08)",
-    background: "linear-gradient(180deg, rgba(17,24,39,0.92) 0%, rgba(11,18,32,0.92) 100%)",
+    background:
+      "linear-gradient(180deg, rgba(17,24,39,0.92) 0%, rgba(11,18,32,0.92) 100%)",
     padding: 12,
-    boxShadow: "0 10px 20px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04)",
+    boxShadow:
+      "0 10px 20px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04)",
     display: "flex",
     flexDirection: "column",
     justifyContent: "space-between",
   }),
-  blockTime: { fontWeight: 800, letterSpacing: "-0.01em", fontSize: 13, color: "#E5E7EB" },
+  blockTime: {
+    fontWeight: 800,
+    letterSpacing: "-0.01em",
+    fontSize: 13,
+    color: "#E5E7EB",
+  },
   blockService: { fontSize: 13, color: "#CBD5E1" },
   blockMeta: { fontSize: 12, color: "#93A4BF" },
 
   // Hours editor
-  sectionTitle: { fontSize: 14, fontWeight: 700, marginTop: 18, marginBottom: 10, color: "#E5E7EB" },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: 700,
+    marginTop: 18,
+    marginBottom: 10,
+    color: "#E5E7EB",
+  },
   hoursRow: {
     display: "grid",
     gridTemplateColumns: "90px 1fr 1fr",
@@ -166,11 +258,14 @@ const UI = {
     color: "#E5E7EB",
     outline: "none",
   },
-  saveRow: { display: "flex", gap: 10, alignItems: "center", marginTop: 12 },
+  saveRow: {
+    display: "flex",
+    gap: 10,
+    alignItems: "center",
+    marginTop: 12,
+  },
   saveHint: { fontSize: 12, color: "#93A4BF" },
 };
-
-const DAY_LABELS = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
 
 export default function Page({ params }) {
   const slug = params?.slug;
@@ -205,7 +300,9 @@ export default function Page({ params }) {
 
   async function loadToday() {
     if (!slug) return;
-    const res = await fetch(`/api/s/${slug}/dashboard/today`, { cache: "no-store" });
+    const res = await fetch(`/api/s/${slug}/dashboard/today`, {
+      cache: "no-store",
+    });
     const data = await res.json().catch(() => ({}));
 
     if (data?.error) {
@@ -215,8 +312,10 @@ export default function Page({ params }) {
     }
 
     setTodayRows(Array.isArray(data.rows) ? data.rows : []);
-    if (typeof data.display_start_min === "number") setDisplayStartMin(data.display_start_min);
-    if (typeof data.display_end_min === "number") setDisplayEndMin(data.display_end_min);
+    if (typeof data.display_start_min === "number")
+      setDisplayStartMin(data.display_start_min);
+    if (typeof data.display_end_min === "number")
+      setDisplayEndMin(data.display_end_min);
   }
 
   async function loadHours() {
@@ -224,16 +323,18 @@ export default function Page({ params }) {
     setHoursError("");
     setHoursSaved("");
 
-    const res = await fetch(`/api/s/${slug}/business-hours`, { cache: "no-store" });
+    const res = await fetch(`/api/s/${slug}/business-hours`, {
+      cache: "no-store",
+    });
     const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
       setHoursError(data?.error || "Fehler beim Laden der Öffnungszeiten.");
-      setHours([]);
+      setHours(normalizeHoursForUI([]));
       return;
     }
 
-    setHours(Array.isArray(data.hours) ? data.hours : []);
+    setHours(normalizeHoursForUI(data.hours));
   }
 
   async function saveHours() {
@@ -242,6 +343,7 @@ export default function Page({ params }) {
       setHoursError("");
       setHoursSaved("");
 
+      // send exactly 7 weekdays; API will store only valid time ranges, empty => closed (no row)
       const res = await fetch(`/api/s/${slug}/business-hours`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -256,8 +358,8 @@ export default function Page({ params }) {
       }
 
       setHoursSaved("Gespeichert.");
-      // reload today display window (optional sanity)
-      await loadToday();
+      await loadHours(); // reload to reflect DB truth
+      await loadToday(); // refresh display window
     } catch {
       setHoursError("Technischer Fehler.");
     }
@@ -378,6 +480,16 @@ export default function Page({ params }) {
         </div>
 
         <div style={UI.card}>
+          {/* Tabs (RESTORE) */}
+          <div style={UI.tabsRow}>
+            <a href={`/dashboard/${slug}/today`} style={UI.tab(true)}>
+              Today
+            </a>
+            <a href={`/dashboard/${slug}/overview`} style={UI.tab(false)}>
+              Overview
+            </a>
+          </div>
+
           {/* Controls */}
           <div style={UI.controlsCard}>
             <div style={UI.controlsRow}>
@@ -446,50 +558,58 @@ export default function Page({ params }) {
           <div style={{ marginTop: 18 }}>
             <div style={UI.sectionTitle}>Öffnungszeiten (editierbar)</div>
 
-            {hours.length === 0 ? (
-              <div style={UI.saveHint}>
-                Keine Öffnungszeiten gefunden. (Business Hours fehlen oder API-Fehler)
-              </div>
-            ) : (
-              <div>
-                {hours.map((h) => (
-                  <div key={h.id} style={UI.hoursRow}>
-                    <div style={UI.hoursDay}>{DAY_LABELS[h.weekday] ?? h.weekday}</div>
-
-                    <input
-                      type="time"
-                      value={h.open_time || ""}
-                      onChange={(e) =>
-                        setHours((prev) =>
-                          prev.map((x) => (x.id === h.id ? { ...x, open_time: e.target.value } : x))
-                        )
-                      }
-                      style={UI.hoursTime}
-                    />
-
-                    <input
-                      type="time"
-                      value={h.close_time || ""}
-                      onChange={(e) =>
-                        setHours((prev) =>
-                          prev.map((x) => (x.id === h.id ? { ...x, close_time: e.target.value } : x))
-                        )
-                      }
-                      style={UI.hoursTime}
-                    />
+            <div>
+              {hours.map((h) => (
+                <div key={h.id} style={UI.hoursRow}>
+                  <div style={UI.hoursDay}>
+                    {DAY_LABELS[h.weekday] ?? `Tag ${h.weekday}`}
                   </div>
-                ))}
 
-                <div style={UI.saveRow}>
-                  <button onClick={saveHours} style={UI.button}>
-                    Speichern
-                  </button>
-                  {hoursSaved && <div style={UI.saveHint}>{hoursSaved}</div>}
+                  <input
+                    type="time"
+                    value={h.open_time || ""}
+                    onChange={(e) =>
+                      setHours((prev) =>
+                        prev.map((x) =>
+                          x.weekday === h.weekday
+                            ? { ...x, open_time: e.target.value }
+                            : x
+                        )
+                      )
+                    }
+                    style={UI.hoursTime}
+                  />
+
+                  <input
+                    type="time"
+                    value={h.close_time || ""}
+                    onChange={(e) =>
+                      setHours((prev) =>
+                        prev.map((x) =>
+                          x.weekday === h.weekday
+                            ? { ...x, close_time: e.target.value }
+                            : x
+                        )
+                      )
+                    }
+                    style={UI.hoursTime}
+                  />
                 </div>
+              ))}
 
-                {hoursError && <div style={UI.error}>{hoursError}</div>}
+              <div style={UI.saveRow}>
+                <button onClick={saveHours} style={UI.button}>
+                  Speichern
+                </button>
+                {hoursSaved && <div style={UI.saveHint}>{hoursSaved}</div>}
               </div>
-            )}
+
+              {hoursError && <div style={UI.error}>{hoursError}</div>}
+
+              <div style={UI.saveHint}>
+                Hinweis: Leere Tage gelten als <b>geschlossen</b>.
+              </div>
+            </div>
           </div>
         </div>
       </div>
