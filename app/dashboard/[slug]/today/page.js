@@ -21,14 +21,26 @@ function minutesFromISO(iso) {
   return d.getHours() * 60 + d.getMinutes();
 }
 
+function clamp(n, a, b) {
+  return Math.max(a, Math.min(b, n));
+}
+
+function floorHour(min) {
+  return Math.floor(min / 60) * 60;
+}
+
+function ceilHour(min) {
+  return Math.ceil(min / 60) * 60;
+}
+
 const WEEKDAYS = [
-  { k: 1, short: "Mo", label: "Montag" },
-  { k: 2, short: "Di", label: "Dienstag" },
-  { k: 3, short: "Mi", label: "Mittwoch" },
-  { k: 4, short: "Do", label: "Donnerstag" },
-  { k: 5, short: "Fr", label: "Freitag" },
-  { k: 6, short: "Sa", label: "Samstag" },
-  { k: 7, short: "So", label: "Sonntag" },
+  { k: 1, label: "Mo" },
+  { k: 2, label: "Di" },
+  { k: 3, label: "Mi" },
+  { k: 4, label: "Do" },
+  { k: 5, label: "Fr" },
+  { k: 6, label: "Sa" },
+  { k: 7, label: "So" },
 ];
 
 // ====== UI THEME (Dark, calm, owner-tool) ======
@@ -42,12 +54,11 @@ const UI = {
       'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji"',
   },
   shell: { maxWidth: 1100, margin: "0 auto" },
-
   headerRow: {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 14,
+    marginBottom: 18,
   },
   title: { fontSize: 24, fontWeight: 700, letterSpacing: "-0.02em", margin: 0 },
   sub: { fontSize: 13, color: "#9CA3AF", marginTop: 4 },
@@ -108,20 +119,18 @@ const UI = {
     alignItems: "center",
   },
 
-  controlsRow2: {
+  formRow2: {
     display: "grid",
     gridTemplateColumns: "1fr 1fr",
     gap: 10,
-    alignItems: "center",
     marginTop: 10,
   },
-
-  controlsRow3: {
+  formRow2b: {
     display: "grid",
     gridTemplateColumns: "1fr 1fr",
     gap: 10,
-    alignItems: "start",
     marginTop: 10,
+    alignItems: "start",
   },
 
   input: {
@@ -130,29 +139,13 @@ const UI = {
     padding: "0 12px",
     borderRadius: 12,
     border: "1px solid rgba(35, 48, 68, 0.9)",
-    background: "rgba(2, 6, 23, 0.65)",
+    background: "rgba(2, 6, 23, 0.55)",
     color: "#E5E7EB",
     outline: "none",
-    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)",
   },
-
-  // Visibility fix for datetime-local (stronger contrast + focus)
-  inputDateTime: {
-    width: "100%",
-    height: 40,
-    padding: "0 12px",
-    borderRadius: 12,
-    border: "1px solid rgba(148, 163, 184, 0.28)",
-    background: "rgba(2, 6, 23, 0.78)",
-    color: "#E5E7EB",
-    outline: "none",
-    boxShadow:
-      "inset 0 1px 0 rgba(255,255,255,0.04), 0 0 0 1px rgba(59,130,246,0.10)",
-  },
-
   textarea: {
     width: "100%",
-    minHeight: 82,
+    minHeight: 92,
     padding: "10px 12px",
     borderRadius: 12,
     border: "1px solid rgba(35, 48, 68, 0.9)",
@@ -161,7 +154,6 @@ const UI = {
     outline: "none",
     resize: "vertical",
   },
-
   hint: { marginTop: 6, fontSize: 12, color: "#93A4BF" },
 
   button: {
@@ -174,6 +166,17 @@ const UI = {
     fontWeight: 600,
     cursor: "pointer",
     boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
+    whiteSpace: "nowrap",
+  },
+
+  ok: {
+    marginTop: 10,
+    padding: "10px 12px",
+    borderRadius: 12,
+    border: "1px solid rgba(34, 197, 94, 0.35)",
+    background: "rgba(20, 83, 45, 0.22)",
+    color: "#86EFAC",
+    fontSize: 13,
   },
 
   error: {
@@ -183,15 +186,6 @@ const UI = {
     border: "1px solid rgba(248, 113, 113, 0.45)",
     background: "rgba(127, 29, 29, 0.22)",
     color: "#FCA5A5",
-    fontSize: 13,
-  },
-  ok: {
-    marginTop: 10,
-    padding: "10px 12px",
-    borderRadius: 12,
-    border: "1px solid rgba(34, 197, 94, 0.28)",
-    background: "rgba(20, 83, 45, 0.22)",
-    color: "#86EFAC",
     fontSize: 13,
   },
 
@@ -214,14 +208,7 @@ const UI = {
     overflow: "hidden",
     zIndex: 1,
   }),
-  hourLine: (top) => ({
-    position: "absolute",
-    left: 0,
-    right: 0,
-    top,
-    height: 1,
-    background: "rgba(255,255,255,0.08)",
-  }),
+  hourLine: (top) => ({ position: "absolute", left: 0, right: 0, top, height: 1, background: "rgba(255,255,255,0.08)" }),
 
   block: (top, height) => ({
     position: "absolute",
@@ -237,79 +224,77 @@ const UI = {
     display: "flex",
     flexDirection: "column",
     justifyContent: "space-between",
-    gap: 8,
+    overflow: "hidden",
   }),
-  blockTop: { display: "flex", flexDirection: "column", gap: 2 },
   blockTime: { fontWeight: 800, letterSpacing: "-0.01em", fontSize: 13, color: "#E5E7EB" },
-  blockService: { fontSize: 13, color: "#CBD5E1" },
-  blockName: { fontSize: 12, color: "#E5E7EB", opacity: 0.92 },
-  blockMeta: { fontSize: 12, color: "#93A4BF" },
-  blockDetail: { fontSize: 11, color: "#93A4BF", lineHeight: 1.35 },
+  blockService: { fontSize: 13, color: "#CBD5E1", marginTop: 2 },
+  blockCustomer: { fontSize: 12, color: "#E5E7EB", marginTop: 2, fontWeight: 650 },
+  blockMeta: { fontSize: 12, color: "#93A4BF", marginTop: 4 },
+  blockStatus: { fontSize: 12, color: "#93A4BF" },
 
-  // Business Hours section
-  sectionTitle: { marginTop: 18, marginBottom: 10, fontSize: 14, fontWeight: 800, color: "#E5E7EB" },
-  bhWrap: {
+  hoursTitle: { marginTop: 22, marginBottom: 10, fontSize: 14, fontWeight: 800, color: "#E5E7EB" },
+  hoursCard: {
     borderRadius: 16,
     border: "1px solid rgba(35, 48, 68, 0.9)",
     background: "rgba(2, 6, 23, 0.35)",
-    padding: 12,
+    padding: 14,
+    marginTop: 10,
   },
-  bhHeaderRow: {
-    display: "grid",
-    gridTemplateColumns: "120px 1fr 1fr 110px",
-    gap: 10,
+  hoursTable: { width: "100%", borderCollapse: "collapse" },
+  th: { textAlign: "left", fontSize: 12, color: "#93A4BF", fontWeight: 700, padding: "10px 8px" },
+  td: { padding: "10px 8px", borderTop: "1px solid rgba(255,255,255,0.06)" },
+  time: {
+    height: 34,
+    padding: "0 10px",
+    borderRadius: 10,
+    border: "1px solid rgba(35,48,68,0.9)",
+    background: "rgba(2,6,23,0.55)",
+    color: "#E5E7EB",
+    outline: "none",
+    width: 110,
+  },
+  pill: (open) => ({
+    display: "inline-flex",
     alignItems: "center",
-    padding: "8px 8px",
-    color: "#93A4BF",
-    fontSize: 12,
-  },
-  bhRow: {
-    display: "grid",
-    gridTemplateColumns: "120px 1fr 1fr 110px",
-    gap: 10,
-    alignItems: "center",
-    padding: "8px 8px",
-    borderTop: "1px solid rgba(255,255,255,0.06)",
-  },
-  bhTag: (open) => ({
-    justifySelf: "end",
-    fontSize: 12,
-    padding: "6px 10px",
+    justifyContent: "center",
+    height: 28,
+    padding: "0 10px",
     borderRadius: 999,
-    border: open ? "1px solid rgba(34,197,94,0.30)" : "1px solid rgba(148,163,184,0.18)",
-    background: open ? "rgba(34,197,94,0.12)" : "rgba(2,6,23,0.35)",
+    border: open ? "1px solid rgba(34,197,94,0.35)" : "1px solid rgba(148,163,184,0.20)",
+    background: open ? "rgba(20, 83, 45, 0.22)" : "rgba(15, 23, 42, 0.35)",
     color: open ? "#86EFAC" : "#93A4BF",
+    fontSize: 12,
     fontWeight: 700,
-    textAlign: "center",
     width: 80,
   }),
-  bhFooter: { marginTop: 10, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 },
 };
 
 export default function Page({ params }) {
   const slug = params?.slug;
 
+  // Services + create form
   const [services, setServices] = useState([]);
   const [serviceId, setServiceId] = useState("");
   const [start, setStart] = useState("");
 
-  // Customer fields
   const [customerName, setCustomerName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [customerEmail, setCustomerEmail] = useState("");
   const [internalNote, setInternalNote] = useState("");
 
   const [error, setError] = useState("");
   const [okMsg, setOkMsg] = useState("");
 
+  // Today timeline
   const [todayRows, setTodayRows] = useState([]);
   const [displayStartMin, setDisplayStartMin] = useState(8 * 60);
   const [displayEndMin, setDisplayEndMin] = useState(21 * 60);
 
-  const [bh, setBh] = useState(() =>
-    WEEKDAYS.map((d) => ({ weekday: d.k, open_time: "", close_time: "" }))
+  // Business hours editor
+  const [hours, setHours] = useState(() =>
+    WEEKDAYS.map((w) => ({ weekday: w.k, open_time: "", close_time: "" }))
   );
-  const [bhSaving, setBhSaving] = useState(false);
+  const [hoursSaving, setHoursSaving] = useState(false);
 
   const PX_PER_MIN = 2;
 
@@ -329,39 +314,43 @@ export default function Page({ params }) {
     if (!slug) return;
     const res = await fetch(`/api/s/${slug}/dashboard/today`, { cache: "no-store" });
     const data = await res.json().catch(() => ({}));
-
-    if (!res.ok || data?.error) {
-      setError(data?.error || "Technischer Fehler. Bitte erneut versuchen.");
+    if (data?.error) {
+      setError(data.error);
       setTodayRows([]);
       return;
     }
-
     setTodayRows(Array.isArray(data.rows) ? data.rows : []);
-    if (typeof data.display_start_min === "number") setDisplayStartMin(data.display_start_min);
-    if (typeof data.display_end_min === "number") setDisplayEndMin(data.display_end_min);
+
+    // SAFETY-NET: always align to full hours in UI
+    if (typeof data.display_start_min === "number") {
+      setDisplayStartMin(clamp(floorHour(data.display_start_min), 0, 24 * 60));
+    }
+    if (typeof data.display_end_min === "number") {
+      setDisplayEndMin(clamp(ceilHour(data.display_end_min), 0, 24 * 60));
+    }
   }
 
   async function loadBusinessHours() {
     if (!slug) return;
     const res = await fetch(`/api/s/${slug}/business-hours`, { cache: "no-store" });
     const data = await res.json().catch(() => ({}));
-    const rows = Array.isArray(data.rows) ? data.rows : [];
-
-    // normalize to 1..7 always
-    const map = new Map(rows.map((r) => [Number(r.weekday), r]));
-    const next = WEEKDAYS.map((d) => {
-      const r = map.get(d.k);
+    const rows = Array.isArray(data.rows) ? data.rows : Array.isArray(data) ? data : [];
+    const byDay = new Map();
+    for (const r of rows) {
+      if (r && typeof r.weekday === "number") byDay.set(r.weekday, r);
+    }
+    const next = WEEKDAYS.map((w) => {
+      const r = byDay.get(w.k);
       return {
-        weekday: d.k,
-        open_time: r?.open_time ? String(r.open_time).slice(0, 5) : "",
-        close_time: r?.close_time ? String(r.close_time).slice(0, 5) : "",
+        weekday: w.k,
+        open_time: r?.open_time || "",
+        close_time: r?.close_time || "",
       };
     });
-    setBh(next);
+    setHours(next);
   }
 
   useEffect(() => {
-    if (!slug) return;
     setError("");
     setOkMsg("");
     loadServices();
@@ -378,20 +367,15 @@ export default function Page({ params }) {
         if (startMin == null || endMin == null) return null;
 
         const top = (startMin - displayStartMin) * PX_PER_MIN;
-        const height = Math.max(40, (endMin - startMin) * PX_PER_MIN);
+        const height = Math.max(44, (endMin - startMin) * PX_PER_MIN);
 
         const st = new Date(r.start_at);
         const label = `${pad2(st.getHours())}:${pad2(st.getMinutes())}`;
 
-        const custName = r.customer_name || "";
-        const custPhone = r.customer_phone || "";
-        const custMail = r.customer_mail || "";
-        const note = r.internal_note || "";
-
-        const detailParts = [];
-        if (custPhone) detailParts.push(`Tel: ${custPhone}`);
-        if (custMail) detailParts.push(`Mail: ${custMail}`);
-        if (note) detailParts.push(`Notiz: ${note}`);
+        const metaParts = [];
+        if (r.customer_phone) metaParts.push(`Tel: ${r.customer_phone}`);
+        if (r.customer_email) metaParts.push(`Mail: ${r.customer_email}`);
+        if (r.internal_note) metaParts.push(`Notiz: ${r.internal_note}`);
 
         return {
           id: r.id,
@@ -399,9 +383,9 @@ export default function Page({ params }) {
           height,
           startLabel: label,
           service_name: r.service_name,
+          customer_name: r.customer_name,
+          meta: metaParts.join(" · "),
           status: r.status,
-          customer_name: custName,
-          detail: detailParts.join(" · "),
         };
       })
       .filter(Boolean)
@@ -436,43 +420,31 @@ export default function Page({ params }) {
           start_at: startISO,
           end_at: endISO,
           customer_name: customerName.trim(),
-          phone: phone.trim() || null,
-          email: email.trim() || null,
+          customer_phone: customerPhone.trim() || null,
+          customer_email: customerEmail.trim() || null,
           internal_note: internalNote.trim() || null,
         }),
       });
 
       const data = await res.json().catch(() => ({}));
 
-      if (res.status === 409) {
-        setError("Zeit ist bereits belegt. Bitte andere Uhrzeit wählen.");
-        return;
-      }
+      if (res.status === 409) return setError("Zeit ist bereits belegt. Bitte andere Uhrzeit wählen.");
 
       if (!res.ok) {
         if (data?.code === "OUTSIDE_HOURS") {
-          setError("Außerhalb der Öffnungszeiten. Bitte andere Uhrzeit wählen.");
-          return;
+          return setError("Außerhalb der Öffnungszeiten. Bitte andere Uhrzeit wählen.");
         }
         if (String(data?.error || "").includes("no_overlapping_appointments")) {
-          setError("Zeit ist bereits belegt. Bitte andere Uhrzeit wählen.");
-          return;
+          return setError("Zeit ist bereits belegt. Bitte andere Uhrzeit wählen.");
         }
-        setError(data?.error || "Technischer Fehler. Bitte erneut versuchen.");
-        return;
+        return setError(data?.error || "Technischer Fehler. Bitte erneut versuchen.");
       }
 
-      setOkMsg("Termin erstellt.");
       await loadToday();
+      setOkMsg("Termin erstellt.");
     } catch (e) {
       setError("Technischer Fehler. Bitte erneut versuchen.");
     }
-  }
-
-  function setBHField(weekday, field, value) {
-    setBh((prev) =>
-      prev.map((r) => (r.weekday === weekday ? { ...r, [field]: value } : r))
-    );
   }
 
   async function saveBusinessHours() {
@@ -480,18 +452,19 @@ export default function Page({ params }) {
       if (!slug) return;
       setError("");
       setOkMsg("");
-      setBhSaving(true);
+      setHoursSaving(true);
 
-      const payload = bh.map((r) => ({
-        weekday: r.weekday,
-        open_time: r.open_time || null,
-        close_time: r.close_time || null,
+      // IMPORTANT: API expects { hours: [...] }
+      const payload = hours.map((h) => ({
+        weekday: h.weekday,
+        open_time: h.open_time || null,
+        close_time: h.close_time || null,
       }));
 
       const res = await fetch(`/api/s/${slug}/business-hours`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rows: payload }),
+        body: JSON.stringify({ hours: payload }),
       });
 
       const data = await res.json().catch(() => ({}));
@@ -500,13 +473,12 @@ export default function Page({ params }) {
         return;
       }
 
-      setOkMsg("Gespeichert.");
       await loadBusinessHours();
-      await loadToday(); // refresh window bounds for today
+      setOkMsg("Gespeichert.");
     } catch (e) {
       setError("Technischer Fehler. Bitte erneut versuchen.");
     } finally {
-      setBhSaving(false);
+      setHoursSaving(false);
     }
   }
 
@@ -554,7 +526,7 @@ export default function Page({ params }) {
                 type="datetime-local"
                 value={start}
                 onChange={(e) => setStart(e.target.value)}
-                style={UI.inputDateTime}
+                style={UI.input}
               />
 
               <button onClick={createAppointment} style={UI.button}>
@@ -562,7 +534,7 @@ export default function Page({ params }) {
               </button>
             </div>
 
-            <div style={UI.controlsRow2}>
+            <div style={UI.formRow2}>
               <input
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
@@ -570,17 +542,17 @@ export default function Page({ params }) {
                 style={UI.input}
               />
               <input
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                value={customerPhone}
+                onChange={(e) => setCustomerPhone(e.target.value)}
                 placeholder="Telefon (optional)"
                 style={UI.input}
               />
             </div>
 
-            <div style={UI.controlsRow3}>
+            <div style={UI.formRow2b}>
               <input
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={customerEmail}
+                onChange={(e) => setCustomerEmail(e.target.value)}
                 placeholder="E-Mail (optional)"
                 style={UI.input}
               />
@@ -595,8 +567,8 @@ export default function Page({ params }) {
               </div>
             </div>
 
-            {error && <div style={UI.error}>{error}</div>}
             {okMsg && <div style={UI.ok}>{okMsg}</div>}
+            {error && <div style={UI.error}>{error}</div>}
           </div>
 
           <div style={UI.grid}>
@@ -621,60 +593,78 @@ export default function Page({ params }) {
 
               {blocks.map((b) => (
                 <div key={b.id} style={UI.block(b.top, b.height)}>
-                  <div style={UI.blockTop}>
+                  <div>
                     <div style={UI.blockTime}>{b.startLabel}</div>
                     <div style={UI.blockService}>{b.service_name || "Service"}</div>
-                    {b.customer_name ? <div style={UI.blockName}>{b.customer_name}</div> : null}
-                    {b.detail ? <div style={UI.blockDetail}>{b.detail}</div> : null}
+                    {b.customer_name ? <div style={UI.blockCustomer}>{b.customer_name}</div> : null}
+                    {b.meta ? <div style={UI.blockMeta}>{b.meta}</div> : null}
                   </div>
-                  <div style={UI.blockMeta}>{b.status}</div>
+                  <div style={UI.blockStatus}>{b.status}</div>
                 </div>
               ))}
             </div>
           </div>
 
-          <div style={UI.sectionTitle}>Öffnungszeiten (Mo–So)</div>
-          <div style={UI.bhWrap}>
-            <div style={UI.bhHeaderRow}>
-              <div>Tag</div>
-              <div>Open</div>
-              <div>Close</div>
-              <div style={{ justifySelf: "end" }}>Status</div>
+          <div style={UI.hoursTitle}>Öffnungszeiten (Mo–So)</div>
+          <div style={UI.hoursCard}>
+            <table style={UI.hoursTable}>
+              <thead>
+                <tr>
+                  <th style={UI.th}>Tag</th>
+                  <th style={UI.th}>Open</th>
+                  <th style={UI.th}>Close</th>
+                  <th style={UI.th}>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {hours.map((h) => {
+                  const open = Boolean(h.open_time && h.close_time);
+                  return (
+                    <tr key={h.weekday}>
+                      <td style={UI.td}>{WEEKDAYS.find((w) => w.k === h.weekday)?.label}</td>
+                      <td style={UI.td}>
+                        <input
+                          type="time"
+                          value={h.open_time || ""}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            setHours((prev) =>
+                              prev.map((x) => (x.weekday === h.weekday ? { ...x, open_time: v } : x))
+                            );
+                          }}
+                          style={UI.time}
+                        />
+                      </td>
+                      <td style={UI.td}>
+                        <input
+                          type="time"
+                          value={h.close_time || ""}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            setHours((prev) =>
+                              prev.map((x) => (x.weekday === h.weekday ? { ...x, close_time: v } : x))
+                            );
+                          }}
+                          style={UI.time}
+                        />
+                      </td>
+                      <td style={UI.td}>
+                        <span style={UI.pill(open)}>{open ? "Open" : "Closed"}</span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}>
+              <button onClick={saveBusinessHours} style={UI.button} disabled={hoursSaving}>
+                {hoursSaving ? "Speichern..." : "Speichern"}
+              </button>
             </div>
 
-            {WEEKDAYS.map((d) => {
-              const row = bh.find((x) => x.weekday === d.k) || { open_time: "", close_time: "" };
-              const isOpen = !!(row.open_time && row.close_time);
-              return (
-                <div key={d.k} style={UI.bhRow}>
-                  <div style={{ color: "#CBD5E1", fontSize: 13 }}>{d.short}</div>
-
-                  <input
-                    type="time"
-                    value={row.open_time}
-                    onChange={(e) => setBHField(d.k, "open_time", e.target.value)}
-                    style={UI.input}
-                  />
-
-                  <input
-                    type="time"
-                    value={row.close_time}
-                    onChange={(e) => setBHField(d.k, "close_time", e.target.value)}
-                    style={UI.input}
-                  />
-
-                  <div style={UI.bhTag(isOpen)}>{isOpen ? "Open" : "Zu"}</div>
-                </div>
-              );
-            })}
-
-            <div style={UI.bhFooter}>
-              <div style={{ fontSize: 12, color: "#93A4BF" }}>
-                Leere Zeiten = geschlossen. Buchungen außerhalb werden serverseitig blockiert.
-              </div>
-              <button onClick={saveBusinessHours} style={UI.button} disabled={bhSaving}>
-                {bhSaving ? "Speichert…" : "Speichern"}
-              </button>
+            <div style={UI.hint}>
+              Leere Zeiten = geschlossen. Buchungen außerhalb werden serverseitig blockiert.
             </div>
           </div>
         </div>
