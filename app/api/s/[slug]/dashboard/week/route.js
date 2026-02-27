@@ -1,103 +1,70 @@
 import { query } from "@/lib/db";
 
+function json(data, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+function dayKeyUTC(d) {
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(d.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${dd}`;
+}
+
 export async function GET(req, { params }) {
   const slug = params?.slug;
 
   try {
-    if (!slug) {
-      return Response.json({ error: "Missing slug" }, { status: 400 });
-    }
+    if (!slug) return json({ error: "Missing slug" }, 400);
 
-    // Resolve salon_id
-    const salonRes = await query("select id from salons where slug = $1 limit 1", [slug]);
-    if (!salonRes.rowCount) {
-      return Response.json({ error: "Salon not found" }, { status: 404 });
-    }
-    const salonId = salonRes.rows[0].id;
+    const salonRes = await query("select id from public.salons where slug=$1 limit 1", [slug]);
+    if (!salonRes.rowCount) return json({ error: "Salon not found" }, 404);
+    const salon_id = salonRes.rows[0].id;
 
-    // Week window based on Europe/Berlin calendar days (pilot-safe, reduces TZ confusion)
-    // week_start_date = today in Berlin (YYYY-MM-DD)
-    // week_end_date = week_start_date + 7 days
+    const now = new Date();
+    const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0));
+    const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 7, 0, 0, 0));
+
     const rowsRes = await query(
       `
-      with params as (
-        select
-          ($1::uuid) as salon_id,
-          ((now() at time zone 'Europe/Berlin')::date) as week_start_date,
-          (((now() at time zone 'Europe/Berlin')::date) + 7) as week_end_date
-      ),
-      bounds as (
-        select
-          salon_id,
-          week_start_date,
-          week_end_date,
-          (week_start_date::timestamp at time zone 'Europe/Berlin') as start_ts,
-          (week_end_date::timestamp at time zone 'Europe/Berlin') as end_ts
-        from params
-      )
       select
-        a.id,
-        a.salon_id,
-        a.service_id,
-        a.customer_id,
-        a.kind,
-        a.status,
-        a.start_at,
-        a.end_at,
-        a.notes,
-        a.created_at,
-        s.name as service_name,
-        to_char((a.start_at at time zone 'Europe/Berlin')::date, 'YYYY-MM-DD') as day_key
-      from appointments a
-      join services s on s.id = a.service_id
-      cross join bounds b
-      where
-        a.salon_id = b.salon_id
-        and a.start_at >= b.start_ts
-        and a.start_at < b.end_ts
+        a.*,
+        s.name as service_name
+      from public.appointments a
+      join public.services s on s.id = a.service_id
+      where a.salon_id = $1
+        and a.start_at >= $2
+        and a.start_at < $3
       order by a.start_at asc
       `,
-      [salonId]
+      [salon_id, start.toISOString(), end.toISOString()]
     );
 
-    // group into 7 buckets (Mon-Sun layout is UI concern; here we just provide day_key groups)
-    const grouped = {};
-    for (const r of rowsRes.rows) {
-      const k = r.day_key;
-      if (!grouped[k]) grouped[k] = [];
-      grouped[k].push(r);
+    const rows = rowsRes.rows.map((r) => {
+      const d = new Date(r.start_at);
+      return { ...r, day_key: dayKeyUTC(d) };
+    });
+
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(start.getTime() + i * 24 * 60 * 60 * 1000);
+      const key = dayKeyUTC(d);
+      days.push({
+        date: key,
+        rows: rows.filter((x) => x.day_key === key),
+      });
     }
 
-    // return 7 day keys starting from today (Berlin)
-    const daysRes = await query(
-      `
-      select
-        to_char(((now() at time zone 'Europe/Berlin')::date + i)::date, 'YYYY-MM-DD') as day_key
-      from generate_series(0, 6) as i
-      `,
-      []
-    );
-
-    const dayKeys = daysRes.rows.map((x) => x.day_key);
-    const days = dayKeys.map((k) => ({
-      date: k,
-      rows: grouped[k] || [],
-    }));
-
-    return Response.json({
-      slug,
-      salon_id: salonId,
-      days,
-    });
+    return json({ slug, salon_id, days });
   } catch (error) {
     console.error("[API_ERROR]", {
       route: "/api/s/[slug]/dashboard/week",
       slug,
       message: error?.message,
     });
-    return Response.json(
-      { error: "Internal error" },
-      { status: 500 }
-    );
+    return json({ error: "Technischer Fehler. Bitte erneut versuchen." }, 500);
   }
 }
