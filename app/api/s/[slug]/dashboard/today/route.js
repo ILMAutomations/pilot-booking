@@ -39,19 +39,22 @@ export async function GET(req, { params }) {
     const salonId = salon.id;
     const tz = salon.timezone || "Europe/Berlin";
 
-    // 2) Determine "today" in salon timezone
-    // today_date: date in salon tz, weekday: ISO dow (Mon=1..Sun=7)
-    const todayInfoRes = await query(
+    // 2) Compute today's UTC range for the salon's local day
+    // day_start_utc = start of local day in salon timezone, converted to timestamptz (UTC)
+    // day_end_utc = + 1 day
+    const rangeRes = await query(
       `select
-         (now() at time zone $1)::date as today_date,
+         (((now() at time zone $1)::date)::timestamp at time zone $1) as day_start_utc,
+         ((((now() at time zone $1)::date + 1)::timestamp) at time zone $1) as day_end_utc,
          extract(isodow from (now() at time zone $1))::int as weekday`,
       [tz]
     );
 
-    const todayDate = todayInfoRes.rows[0].today_date; // e.g. 2026-02-27
-    const weekday = todayInfoRes.rows[0].weekday; // 1..7
+    const dayStartUtc = rangeRes.rows[0].day_start_utc;
+    const dayEndUtc = rangeRes.rows[0].day_end_utc;
+    const weekday = rangeRes.rows[0].weekday;
 
-    // 3) Fetch business hours for today (may be null => closed)
+    // 3) Display window from business hours (optional)
     const bhRes = await query(
       `select open_time, close_time
        from public.business_hours
@@ -66,16 +69,14 @@ export async function GET(req, { params }) {
     if (bhRes.rowCount) {
       const openMin = minutesFromTimeStr(bhRes.rows[0].open_time);
       const closeMin = minutesFromTimeStr(bhRes.rows[0].close_time);
-
       if (openMin != null && closeMin != null) {
-        // padding +-60min, clamp 06:00..22:00
         displayStartMin = clamp(openMin - 60, 6 * 60, 22 * 60);
         displayEndMin = clamp(closeMin + 60, 6 * 60, 22 * 60);
       }
     }
 
-    // 4) Appointments for "today" by salon timezone date
-    // IMPORTANT: customer_mail column name is used (not customer_email)
+    // 4) Appointments for today (range-based, timezone-safe)
+    // NOTE: DB column is customer_mail (per your table editor)
     const apptRes = await query(
       `select
          a.id,
@@ -97,9 +98,10 @@ export async function GET(req, { params }) {
        from public.appointments a
        left join public.services s on s.id = a.service_id
        where a.salon_id = $1
-         and (a.start_at at time zone $2)::date = $3::date
+         and a.start_at >= $2
+         and a.start_at < $3
        order by a.start_at asc`,
-      [salonId, tz, todayDate]
+      [salonId, dayStartUtc, dayEndUtc]
     );
 
     return Response.json({
