@@ -1,7 +1,6 @@
 import { query } from "@/lib/db";
 
 function minutesFromTimeStr(t) {
-  // t like "10:15:00" or "10:15"
   if (!t) return null;
   const parts = String(t).split(":");
   const hh = Number(parts[0] || 0);
@@ -40,8 +39,6 @@ export async function GET(req, { params }) {
     const tz = salon.timezone || "Europe/Berlin";
 
     // 2) Compute today's UTC range for the salon's local day
-    // day_start_utc = start of local day in salon timezone, converted to timestamptz (UTC)
-    // day_end_utc = + 1 day
     const rangeRes = await query(
       `select
          (((now() at time zone $1)::date)::timestamp at time zone $1) as day_start_utc,
@@ -75,8 +72,8 @@ export async function GET(req, { params }) {
       }
     }
 
-    // 4) Appointments for today (range-based, timezone-safe)
-    // NOTE: DB column is customer_mail (per your table editor)
+    // 4) Appointments for today (timezone-safe range)
+    // IMPORTANT: column is customer_email (NOT customer_mail)
     const apptRes = await query(
       `select
          a.id,
@@ -92,7 +89,7 @@ export async function GET(req, { params }) {
          a.updated_at,
          a.customer_name,
          a.customer_phone,
-         a.customer_mail,
+         a.customer_email,
          a.internal_note,
          s.name as service_name
        from public.appointments a
