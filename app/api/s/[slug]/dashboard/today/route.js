@@ -1,84 +1,74 @@
-import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
 
-function toMinutesHHMM(timeStr) {
-  // accepts "HH:MM:SS" or "HH:MM"
-  if (!timeStr) return null;
-  const [hh, mm] = String(timeStr).split(":");
-  const h = Number(hh);
-  const m = Number(mm);
-  if (Number.isNaN(h) || Number.isNaN(m)) return null;
-  return h * 60 + m;
+function json(data, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
 }
 
-export async function GET(_req, { params }) {
+export async function GET(req, { params }) {
   const slug = params?.slug;
 
   try {
-    if (!slug) {
-      return NextResponse.json({ error: "missing_slug" }, { status: 400 });
-    }
+    if (!slug) return json({ error: "Missing slug" }, 400);
 
-    const salonRes = await query("select id from salons where slug=$1 limit 1", [
-      slug,
-    ]);
-    if (!salonRes.rowCount) {
-      return NextResponse.json({ error: "salon_not_found", slug }, { status: 404 });
-    }
-    const salonId = salonRes.rows[0].id;
+    const salonRes = await query("select id from public.salons where slug=$1 limit 1", [slug]);
+    if (!salonRes.rowCount) return json({ error: "Salon not found" }, 404);
+    const salon_id = salonRes.rows[0].id;
 
-    // Today range (UTC) – keep simple/pilot-safe:
+    // Today range in UTC (simple, matches existing behavior)
     const now = new Date();
     const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0));
     const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 0, 0));
 
-    // Join service name for display
-    const apptRes = await query(
+    const rowsRes = await query(
       `
-      select a.*,
-             s.name as service_name
-      from appointments a
-      left join services s on s.id = a.service_id
+      select
+        a.*,
+        s.name as service_name
+      from public.appointments a
+      join public.services s on s.id = a.service_id
       where a.salon_id = $1
         and a.start_at >= $2
         and a.start_at < $3
       order by a.start_at asc
       `,
-      [salonId, start.toISOString(), end.toISOString()]
+      [salon_id, start.toISOString(), end.toISOString()]
     );
 
-    // Business hours display window for *today's weekday* (fallback 08–21)
-    const weekday = ((start.getUTCDay() + 6) % 7) + 1; // Mon=1..Sun=7 (matches typical weekday storage)
-    const bhRes = await query(
-      `
-      select open_time, close_time
-      from business_hours
-      where salon_id=$1 and weekday=$2
-      limit 1
-      `,
-      [salonId, weekday]
+    // Display window from business hours (existing feature)
+    const jsDay = now.getDay(); // 0=Sun..6=Sat
+    const weekday = jsDay === 0 ? 7 : jsDay;
+
+    const bh = await query(
+      `select open_time, close_time from public.business_hours where salon_id=$1 and weekday=$2 limit 1`,
+      [salon_id, weekday]
     );
 
-    let displayStartMin = 8 * 60;
-    let displayEndMin = 21 * 60;
+    let display_start_min = 8 * 60;
+    let display_end_min = 21 * 60;
 
-    if (bhRes.rowCount) {
-      const openMin = toMinutesHHMM(bhRes.rows[0].open_time);
-      const closeMin = toMinutesHHMM(bhRes.rows[0].close_time);
+    if (bh.rowCount) {
+      const open = String(bh.rows[0].open_time || "08:00:00").slice(0, 5);
+      const close = String(bh.rows[0].close_time || "21:00:00").slice(0, 5);
+      const [oh, om] = open.split(":").map((x) => parseInt(x, 10));
+      const [ch, cm] = close.split(":").map((x) => parseInt(x, 10));
 
-      if (openMin != null && closeMin != null) {
-        displayStartMin = Math.max(6 * 60, openMin - 60);
-        displayEndMin = Math.min(22 * 60, closeMin + 60);
-      }
+      const openMin = oh * 60 + om;
+      const closeMin = ch * 60 + cm;
+
+      display_start_min = Math.max(6 * 60, openMin - 60);
+      display_end_min = Math.min(22 * 60, closeMin + 60);
     }
 
-    return NextResponse.json({
+    return json({
       slug,
-      salon_id: salonId,
-      today_count: apptRes.rows.length,
-      rows: apptRes.rows,
-      display_start_min: displayStartMin,
-      display_end_min: displayEndMin,
+      salon_id,
+      today_count: rowsRes.rows.length,
+      rows: rowsRes.rows, // includes customer_name/phone/email/internal_note columns automatically
+      display_start_min,
+      display_end_min,
     });
   } catch (error) {
     console.error("[API_ERROR]", {
@@ -86,9 +76,6 @@ export async function GET(_req, { params }) {
       slug,
       message: error?.message,
     });
-    return NextResponse.json(
-      { error: "internal_error", slug },
-      { status: 500 }
-    );
+    return json({ error: "Technischer Fehler. Bitte erneut versuchen." }, 500);
   }
 }
