@@ -21,11 +21,15 @@ function minutesFromISO(iso) {
   return d.getHours() * 60 + d.getMinutes();
 }
 
-function fmtTimeFromISO(iso) {
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return "--:--";
-  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
-}
+const WEEKDAYS = [
+  { k: 1, short: "Mo", label: "Montag" },
+  { k: 2, short: "Di", label: "Dienstag" },
+  { k: 3, short: "Mi", label: "Mittwoch" },
+  { k: 4, short: "Do", label: "Donnerstag" },
+  { k: 5, short: "Fr", label: "Freitag" },
+  { k: 6, short: "Sa", label: "Samstag" },
+  { k: 7, short: "So", label: "Sonntag" },
+];
 
 // ====== UI THEME (Dark, calm, owner-tool) ======
 const UI = {
@@ -43,7 +47,7 @@ const UI = {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 18,
+    marginBottom: 14,
   },
   title: { fontSize: 24, fontWeight: 700, letterSpacing: "-0.02em", margin: 0 },
   sub: { fontSize: 13, color: "#9CA3AF", marginTop: 4 },
@@ -78,9 +82,7 @@ const UI = {
     height: 34,
     padding: "0 12px",
     borderRadius: 999,
-    border: active
-      ? "1px solid rgba(59, 130, 246, 0.55)"
-      : "1px solid rgba(35,48,68,0.9)",
+    border: active ? "1px solid rgba(59, 130, 246, 0.55)" : "1px solid rgba(35,48,68,0.9)",
     background: active ? "rgba(59, 130, 246, 0.16)" : "rgba(2,6,23,0.35)",
     color: active ? "#DBEAFE" : "#CBD5E1",
     fontWeight: 650,
@@ -104,7 +106,6 @@ const UI = {
     gridTemplateColumns: "1.2fr 1fr auto",
     gap: 10,
     alignItems: "center",
-    marginBottom: 10,
   },
 
   controlsRow2: {
@@ -112,14 +113,15 @@ const UI = {
     gridTemplateColumns: "1fr 1fr",
     gap: 10,
     alignItems: "center",
-    marginBottom: 10,
+    marginTop: 10,
   },
 
   controlsRow3: {
     display: "grid",
     gridTemplateColumns: "1fr 1fr",
     gap: 10,
-    alignItems: "center",
+    alignItems: "start",
+    marginTop: 10,
   },
 
   input: {
@@ -128,26 +130,29 @@ const UI = {
     padding: "0 12px",
     borderRadius: 12,
     border: "1px solid rgba(35, 48, 68, 0.9)",
-    background: "rgba(2, 6, 23, 0.55)",
+    background: "rgba(2, 6, 23, 0.65)",
     color: "#E5E7EB",
     outline: "none",
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)",
   },
 
-  inputHi: {
+  // Visibility fix for datetime-local (stronger contrast + focus)
+  inputDateTime: {
     width: "100%",
     height: 40,
     padding: "0 12px",
     borderRadius: 12,
-    border: "1px solid rgba(148, 163, 184, 0.35)",
-    background: "rgba(2, 6, 23, 0.72)",
+    border: "1px solid rgba(148, 163, 184, 0.28)",
+    background: "rgba(2, 6, 23, 0.78)",
     color: "#E5E7EB",
     outline: "none",
-    boxShadow: "0 0 0 2px rgba(59,130,246,0.10)",
+    boxShadow:
+      "inset 0 1px 0 rgba(255,255,255,0.04), 0 0 0 1px rgba(59,130,246,0.10)",
   },
 
   textarea: {
     width: "100%",
-    minHeight: 74,
+    minHeight: 82,
     padding: "10px 12px",
     borderRadius: 12,
     border: "1px solid rgba(35, 48, 68, 0.9)",
@@ -157,6 +162,8 @@ const UI = {
     resize: "vertical",
   },
 
+  hint: { marginTop: 6, fontSize: 12, color: "#93A4BF" },
+
   button: {
     height: 40,
     padding: "0 16px",
@@ -164,12 +171,10 @@ const UI = {
     border: "1px solid rgba(59, 130, 246, 0.45)",
     background: "rgba(59, 130, 246, 0.16)",
     color: "#DBEAFE",
-    fontWeight: 700,
+    fontWeight: 600,
     cursor: "pointer",
     boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
   },
-
-  hint: { fontSize: 12, color: "#93A4BF", marginTop: 6 },
 
   error: {
     marginTop: 10,
@@ -180,8 +185,15 @@ const UI = {
     color: "#FCA5A5",
     fontSize: 13,
   },
-
-  sectionTitle: { fontSize: 14, fontWeight: 800, color: "#E5E7EB", margin: "18px 0 10px" },
+  ok: {
+    marginTop: 10,
+    padding: "10px 12px",
+    borderRadius: 12,
+    border: "1px solid rgba(34, 197, 94, 0.28)",
+    background: "rgba(20, 83, 45, 0.22)",
+    color: "#86EFAC",
+    fontSize: 13,
+  },
 
   grid: {
     display: "grid",
@@ -208,7 +220,7 @@ const UI = {
     right: 0,
     top,
     height: 1,
-    background: "rgba(255,255,255,0.10)",
+    background: "rgba(255,255,255,0.08)",
   }),
 
   block: (top, height) => ({
@@ -225,59 +237,54 @@ const UI = {
     display: "flex",
     flexDirection: "column",
     justifyContent: "space-between",
+    gap: 8,
   }),
-  blockTime: { fontWeight: 900, letterSpacing: "-0.01em", fontSize: 13, color: "#E5E7EB" },
+  blockTop: { display: "flex", flexDirection: "column", gap: 2 },
+  blockTime: { fontWeight: 800, letterSpacing: "-0.01em", fontSize: 13, color: "#E5E7EB" },
   blockService: { fontSize: 13, color: "#CBD5E1" },
-  blockCustomer: { fontSize: 12, color: "#C7D2FE" },
+  blockName: { fontSize: 12, color: "#E5E7EB", opacity: 0.92 },
   blockMeta: { fontSize: 12, color: "#93A4BF" },
-  blockNote: { fontSize: 11, color: "#9CA3AF", marginTop: 6 },
+  blockDetail: { fontSize: 11, color: "#93A4BF", lineHeight: 1.35 },
 
-  // Business hours editor
-  hoursTable: {
-    width: "100%",
-    borderCollapse: "separate",
-    borderSpacing: 0,
-    marginTop: 8,
-    overflow: "hidden",
-    borderRadius: 14,
+  // Business Hours section
+  sectionTitle: { marginTop: 18, marginBottom: 10, fontSize: 14, fontWeight: 800, color: "#E5E7EB" },
+  bhWrap: {
+    borderRadius: 16,
     border: "1px solid rgba(35, 48, 68, 0.9)",
+    background: "rgba(2, 6, 23, 0.35)",
+    padding: 12,
   },
-  hoursTh: {
-    textAlign: "left",
-    fontSize: 12,
+  bhHeaderRow: {
+    display: "grid",
+    gridTemplateColumns: "120px 1fr 1fr 110px",
+    gap: 10,
+    alignItems: "center",
+    padding: "8px 8px",
     color: "#93A4BF",
-    padding: "10px 12px",
-    background: "rgba(2,6,23,0.35)",
-    borderBottom: "1px solid rgba(35,48,68,0.9)",
-  },
-  hoursTd: {
-    padding: "10px 12px",
-    borderBottom: "1px solid rgba(35,48,68,0.55)",
     fontSize: 12,
-    color: "#CBD5E1",
   },
-  smallInput: {
-    height: 34,
-    padding: "0 10px",
-    borderRadius: 10,
-    border: "1px solid rgba(35, 48, 68, 0.9)",
-    background: "rgba(2, 6, 23, 0.55)",
-    color: "#E5E7EB",
-    outline: "none",
+  bhRow: {
+    display: "grid",
+    gridTemplateColumns: "120px 1fr 1fr 110px",
+    gap: 10,
+    alignItems: "center",
+    padding: "8px 8px",
+    borderTop: "1px solid rgba(255,255,255,0.06)",
   },
-  saveRow: { display: "flex", gap: 10, alignItems: "center", marginTop: 10 },
-  saved: { fontSize: 12, color: "#A7F3D0" },
+  bhTag: (open) => ({
+    justifySelf: "end",
+    fontSize: 12,
+    padding: "6px 10px",
+    borderRadius: 999,
+    border: open ? "1px solid rgba(34,197,94,0.30)" : "1px solid rgba(148,163,184,0.18)",
+    background: open ? "rgba(34,197,94,0.12)" : "rgba(2,6,23,0.35)",
+    color: open ? "#86EFAC" : "#93A4BF",
+    fontWeight: 700,
+    textAlign: "center",
+    width: 80,
+  }),
+  bhFooter: { marginTop: 10, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 },
 };
-
-const WEEKDAYS = [
-  { k: 1, label: "Mo" },
-  { k: 2, label: "Di" },
-  { k: 3, label: "Mi" },
-  { k: 4, label: "Do" },
-  { k: 5, label: "Fr" },
-  { k: 6, label: "Sa" },
-  { k: 7, label: "So" },
-];
 
 export default function Page({ params }) {
   const slug = params?.slug;
@@ -286,24 +293,23 @@ export default function Page({ params }) {
   const [serviceId, setServiceId] = useState("");
   const [start, setStart] = useState("");
 
-  // customer fields
+  // Customer fields
   const [customerName, setCustomerName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [internalNote, setInternalNote] = useState("");
 
   const [error, setError] = useState("");
+  const [okMsg, setOkMsg] = useState("");
 
   const [todayRows, setTodayRows] = useState([]);
   const [displayStartMin, setDisplayStartMin] = useState(8 * 60);
   const [displayEndMin, setDisplayEndMin] = useState(21 * 60);
 
-  // business hours editor state
-  const [hours, setHours] = useState(() =>
-    WEEKDAYS.map((w) => ({ weekday: w.k, open_time: "", close_time: "" }))
+  const [bh, setBh] = useState(() =>
+    WEEKDAYS.map((d) => ({ weekday: d.k, open_time: "", close_time: "" }))
   );
-  const [savingHours, setSavingHours] = useState(false);
-  const [hoursSaved, setHoursSaved] = useState(false);
+  const [bhSaving, setBhSaving] = useState(false);
 
   const PX_PER_MIN = 2;
 
@@ -323,55 +329,46 @@ export default function Page({ params }) {
     if (!slug) return;
     const res = await fetch(`/api/s/${slug}/dashboard/today`, { cache: "no-store" });
     const data = await res.json().catch(() => ({}));
+
     if (!res.ok || data?.error) {
       setError(data?.error || "Technischer Fehler. Bitte erneut versuchen.");
       setTodayRows([]);
       return;
     }
+
     setTodayRows(Array.isArray(data.rows) ? data.rows : []);
     if (typeof data.display_start_min === "number") setDisplayStartMin(data.display_start_min);
     if (typeof data.display_end_min === "number") setDisplayEndMin(data.display_end_min);
   }
 
-  async function loadHours() {
+  async function loadBusinessHours() {
     if (!slug) return;
-    // Existing Feature-1 endpoint
     const res = await fetch(`/api/s/${slug}/business-hours`, { cache: "no-store" });
     const data = await res.json().catch(() => ({}));
-    const arr = Array.isArray(data.hours) ? data.hours : Array.isArray(data.rows) ? data.rows : [];
-    if (!Array.isArray(arr) || arr.length === 0) {
-      // fallback keep defaults
-      return;
-    }
-    // Normalize into 7 weekdays
-    const map = new Map();
-    for (const r of arr) {
-      map.set(Number(r.weekday), {
-        weekday: Number(r.weekday),
-        open_time: r.open_time || "",
-        close_time: r.close_time || "",
-      });
-    }
-    const next = WEEKDAYS.map((w) => map.get(w.k) || { weekday: w.k, open_time: "", close_time: "" });
-    setHours(next);
+    const rows = Array.isArray(data.rows) ? data.rows : [];
+
+    // normalize to 1..7 always
+    const map = new Map(rows.map((r) => [Number(r.weekday), r]));
+    const next = WEEKDAYS.map((d) => {
+      const r = map.get(d.k);
+      return {
+        weekday: d.k,
+        open_time: r?.open_time ? String(r.open_time).slice(0, 5) : "",
+        close_time: r?.close_time ? String(r.close_time).slice(0, 5) : "",
+      };
+    });
+    setBh(next);
   }
 
   useEffect(() => {
+    if (!slug) return;
     setError("");
+    setOkMsg("");
     loadServices();
     loadToday();
-    loadHours();
+    loadBusinessHours();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
-
-  // ===== Fix for 60s offset: draw lines/labels on real clock hours =====
-  const hourMarks = useMemo(() => {
-    // first full hour >= displayStartMin
-    const first = Math.ceil(displayStartMin / 60) * 60;
-    const marks = [];
-    for (let m = first; m <= displayEndMin; m += 60) marks.push(m);
-    return marks;
-  }, [displayStartMin, displayEndMin]);
 
   const blocks = useMemo(() => {
     return (todayRows || [])
@@ -381,21 +378,30 @@ export default function Page({ params }) {
         if (startMin == null || endMin == null) return null;
 
         const top = (startMin - displayStartMin) * PX_PER_MIN;
-        const height = Math.max(32, (endMin - startMin) * PX_PER_MIN);
+        const height = Math.max(40, (endMin - startMin) * PX_PER_MIN);
 
-        const startLabel = fmtTimeFromISO(r.start_at);
+        const st = new Date(r.start_at);
+        const label = `${pad2(st.getHours())}:${pad2(st.getMinutes())}`;
+
+        const custName = r.customer_name || "";
+        const custPhone = r.customer_phone || "";
+        const custMail = r.customer_mail || "";
+        const note = r.internal_note || "";
+
+        const detailParts = [];
+        if (custPhone) detailParts.push(`Tel: ${custPhone}`);
+        if (custMail) detailParts.push(`Mail: ${custMail}`);
+        if (note) detailParts.push(`Notiz: ${note}`);
 
         return {
           id: r.id,
           top,
           height,
-          startLabel,
+          startLabel: label,
           service_name: r.service_name,
           status: r.status,
-          customer_name: r.customer_name,
-          customer_phone: r.customer_phone,
-          customer_email: r.customer_email || r.customer_mail,
-          internal_note: r.internal_note,
+          customer_name: custName,
+          detail: detailParts.join(" · "),
         };
       })
       .filter(Boolean)
@@ -405,10 +411,11 @@ export default function Page({ params }) {
   async function createAppointment() {
     try {
       setError("");
+      setOkMsg("");
 
       if (!serviceId) return setError("Bitte Service auswählen.");
       if (!start) return setError("Bitte Startzeit auswählen.");
-      if (!customerName.trim()) return setError("Bitte Kundennamen eintragen.");
+      if (!customerName.trim()) return setError("Bitte Kundennamen eingeben.");
 
       const svc = services.find((s) => s.id === serviceId);
       const duration = Number(svc?.duration_min || 0);
@@ -429,66 +436,83 @@ export default function Page({ params }) {
           start_at: startISO,
           end_at: endISO,
           customer_name: customerName.trim(),
-          phone: phone?.trim() || null,
-          email: email?.trim() || null,
-          internal_note: internalNote?.trim() || null,
+          phone: phone.trim() || null,
+          email: email.trim() || null,
+          internal_note: internalNote.trim() || null,
         }),
       });
 
       const data = await res.json().catch(() => ({}));
 
-      if (res.status === 409) return setError("Zeit ist bereits belegt. Bitte andere Uhrzeit wählen.");
-      if (!res.ok) {
-        if (data?.code === "OUTSIDE_HOURS") return setError("Außerhalb der Öffnungszeiten. Bitte andere Uhrzeit wählen.");
-        if (String(data?.error || "").includes("no_overlapping_appointments")) {
-          return setError("Zeit ist bereits belegt. Bitte andere Uhrzeit wählen.");
-        }
-        return setError(data?.error || "Technischer Fehler. Bitte erneut versuchen.");
+      if (res.status === 409) {
+        setError("Zeit ist bereits belegt. Bitte andere Uhrzeit wählen.");
+        return;
       }
 
-      // Success: reload
+      if (!res.ok) {
+        if (data?.code === "OUTSIDE_HOURS") {
+          setError("Außerhalb der Öffnungszeiten. Bitte andere Uhrzeit wählen.");
+          return;
+        }
+        if (String(data?.error || "").includes("no_overlapping_appointments")) {
+          setError("Zeit ist bereits belegt. Bitte andere Uhrzeit wählen.");
+          return;
+        }
+        setError(data?.error || "Technischer Fehler. Bitte erneut versuchen.");
+        return;
+      }
+
+      setOkMsg("Termin erstellt.");
       await loadToday();
     } catch (e) {
       setError("Technischer Fehler. Bitte erneut versuchen.");
     }
   }
 
-  async function saveHours() {
+  function setBHField(weekday, field, value) {
+    setBh((prev) =>
+      prev.map((r) => (r.weekday === weekday ? { ...r, [field]: value } : r))
+    );
+  }
+
+  async function saveBusinessHours() {
     try {
       if (!slug) return;
-      setSavingHours(true);
-      setHoursSaved(false);
       setError("");
+      setOkMsg("");
+      setBhSaving(true);
 
-      const payload = hours.map((h) => ({
-        weekday: h.weekday,
-        open_time: h.open_time || null,
-        close_time: h.close_time || null,
+      const payload = bh.map((r) => ({
+        weekday: r.weekday,
+        open_time: r.open_time || null,
+        close_time: r.close_time || null,
       }));
 
       const res = await fetch(`/api/s/${slug}/business-hours`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ hours: payload }),
+        body: JSON.stringify({ rows: payload }),
       });
+
       const data = await res.json().catch(() => ({}));
       if (!res.ok || data?.error) {
-        setError(data?.error || "Speichern fehlgeschlagen.");
+        setError(data?.error || "Technischer Fehler. Bitte erneut versuchen.");
         return;
       }
 
-      setHoursSaved(true);
-      await loadHours();
-      await loadToday(); // refresh display window too
+      setOkMsg("Gespeichert.");
+      await loadBusinessHours();
+      await loadToday(); // refresh window bounds for today
     } catch (e) {
-      setError("Speichern fehlgeschlagen.");
+      setError("Technischer Fehler. Bitte erneut versuchen.");
     } finally {
-      setSavingHours(false);
-      setTimeout(() => setHoursSaved(false), 1800);
+      setBhSaving(false);
     }
   }
 
   if (!slug) return null;
+
+  const hourCount = Math.floor((displayEndMin - displayStartMin) / 60) + 1;
 
   return (
     <div style={UI.page}>
@@ -502,7 +526,6 @@ export default function Page({ params }) {
         </div>
 
         <div style={UI.card}>
-          {/* Tabs */}
           <div style={UI.tabsRow}>
             <Link href={`/dashboard/${slug}/today`} style={UI.tab(true)}>
               Today
@@ -512,7 +535,6 @@ export default function Page({ params }) {
             </Link>
           </div>
 
-          {/* Controls */}
           <div style={UI.controlsCard}>
             <div style={UI.controlsRow}>
               <select
@@ -532,7 +554,7 @@ export default function Page({ params }) {
                 type="datetime-local"
                 value={start}
                 onChange={(e) => setStart(e.target.value)}
-                style={UI.inputHi}
+                style={UI.inputDateTime}
               />
 
               <button onClick={createAppointment} style={UI.button}>
@@ -562,7 +584,7 @@ export default function Page({ params }) {
                 placeholder="E-Mail (optional)"
                 style={UI.input}
               />
-              <div style={{ display: "flex", flexDirection: "column" }}>
+              <div>
                 <textarea
                   value={internalNote}
                   onChange={(e) => setInternalNote(e.target.value)}
@@ -574,106 +596,85 @@ export default function Page({ params }) {
             </div>
 
             {error && <div style={UI.error}>{error}</div>}
+            {okMsg && <div style={UI.ok}>{okMsg}</div>}
           </div>
 
-          {/* Timeline */}
           <div style={UI.grid}>
             <div style={UI.hourCol(timelineHeight)}>
-              {hourMarks.map((m) => {
-                const top = (m - displayStartMin) * PX_PER_MIN;
-                const hh = Math.floor(m / 60);
+              {Array.from({ length: hourCount }).map((_, i) => {
+                const minute = displayStartMin + i * 60;
+                const hour = Math.floor(minute / 60);
+                const top = (minute - displayStartMin) * PX_PER_MIN;
                 return (
-                  <div key={m} style={{ ...UI.hourLabel, top }}>
-                    {pad2(hh)}:00
+                  <div key={i} style={{ ...UI.hourLabel, top }}>
+                    {pad2(hour)}:00
                   </div>
                 );
               })}
             </div>
 
             <div style={UI.canvas(timelineHeight)}>
-              {hourMarks.map((m) => {
-                const top = (m - displayStartMin) * PX_PER_MIN;
-                return <div key={m} style={UI.hourLine(top)} />;
+              {Array.from({ length: hourCount }).map((_, i) => {
+                const top = i * 60 * PX_PER_MIN;
+                return <div key={i} style={UI.hourLine(top)} />;
               })}
 
               {blocks.map((b) => (
                 <div key={b.id} style={UI.block(b.top, b.height)}>
-                  <div>
+                  <div style={UI.blockTop}>
                     <div style={UI.blockTime}>{b.startLabel}</div>
                     <div style={UI.blockService}>{b.service_name || "Service"}</div>
-                    <div style={UI.blockCustomer}>{b.customer_name || "Kunde"}</div>
-
-                    {(b.customer_phone || b.customer_email) && (
-                      <div style={UI.blockMeta}>
-                        {b.customer_phone ? `☎ ${b.customer_phone}` : ""}
-                        {b.customer_phone && b.customer_email ? " · " : ""}
-                        {b.customer_email ? `✉ ${b.customer_email}` : ""}
-                      </div>
-                    )}
-
-                    {b.internal_note ? (
-                      <div style={UI.blockNote}>Notiz: {b.internal_note}</div>
-                    ) : null}
+                    {b.customer_name ? <div style={UI.blockName}>{b.customer_name}</div> : null}
+                    {b.detail ? <div style={UI.blockDetail}>{b.detail}</div> : null}
                   </div>
-
                   <div style={UI.blockMeta}>{b.status}</div>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Business Hours Editor (Feature 1 stays visible) */}
-          <div style={{ marginTop: 22 }}>
-            <div style={UI.sectionTitle}>Öffnungszeiten (Mo–So)</div>
-
-            <table style={UI.hoursTable}>
-              <thead>
-                <tr>
-                  <th style={UI.hoursTh}>Tag</th>
-                  <th style={UI.hoursTh}>Open</th>
-                  <th style={UI.hoursTh}>Close</th>
-                </tr>
-              </thead>
-              <tbody>
-                {hours.map((h, idx) => (
-                  <tr key={h.weekday}>
-                    <td style={UI.hoursTd}>{WEEKDAYS.find((w) => w.k === h.weekday)?.label || h.weekday}</td>
-                    <td style={UI.hoursTd}>
-                      <input
-                        type="time"
-                        value={h.open_time || ""}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          setHours((prev) => prev.map((x, i) => (i === idx ? { ...x, open_time: v } : x)));
-                        }}
-                        style={UI.smallInput}
-                      />
-                    </td>
-                    <td style={{ ...UI.hoursTd, borderBottom: "none" }}>
-                      <input
-                        type="time"
-                        value={h.close_time || ""}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          setHours((prev) => prev.map((x, i) => (i === idx ? { ...x, close_time: v } : x)));
-                        }}
-                        style={UI.smallInput}
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            <div style={UI.saveRow}>
-              <button onClick={saveHours} style={UI.button} disabled={savingHours}>
-                {savingHours ? "Speichere..." : "Speichern"}
-              </button>
-              {hoursSaved && <div style={UI.saved}>Gespeichert.</div>}
+          <div style={UI.sectionTitle}>Öffnungszeiten (Mo–So)</div>
+          <div style={UI.bhWrap}>
+            <div style={UI.bhHeaderRow}>
+              <div>Tag</div>
+              <div>Open</div>
+              <div>Close</div>
+              <div style={{ justifySelf: "end" }}>Status</div>
             </div>
 
-            <div style={UI.hint}>
-              Leere Zeiten = geschlossen. Buchungen außerhalb werden serverseitig blockiert.
+            {WEEKDAYS.map((d) => {
+              const row = bh.find((x) => x.weekday === d.k) || { open_time: "", close_time: "" };
+              const isOpen = !!(row.open_time && row.close_time);
+              return (
+                <div key={d.k} style={UI.bhRow}>
+                  <div style={{ color: "#CBD5E1", fontSize: 13 }}>{d.short}</div>
+
+                  <input
+                    type="time"
+                    value={row.open_time}
+                    onChange={(e) => setBHField(d.k, "open_time", e.target.value)}
+                    style={UI.input}
+                  />
+
+                  <input
+                    type="time"
+                    value={row.close_time}
+                    onChange={(e) => setBHField(d.k, "close_time", e.target.value)}
+                    style={UI.input}
+                  />
+
+                  <div style={UI.bhTag(isOpen)}>{isOpen ? "Open" : "Zu"}</div>
+                </div>
+              );
+            })}
+
+            <div style={UI.bhFooter}>
+              <div style={{ fontSize: 12, color: "#93A4BF" }}>
+                Leere Zeiten = geschlossen. Buchungen außerhalb werden serverseitig blockiert.
+              </div>
+              <button onClick={saveBusinessHours} style={UI.button} disabled={bhSaving}>
+                {bhSaving ? "Speichert…" : "Speichern"}
+              </button>
             </div>
           </div>
         </div>
