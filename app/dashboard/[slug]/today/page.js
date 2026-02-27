@@ -8,7 +8,6 @@ function pad2(n) {
 }
 
 function toISOFromDatetimeLocal(v) {
-  // v like "2026-02-19T15:00"
   if (!v) return null;
   const d = new Date(v);
   if (isNaN(d.getTime())) return null;
@@ -272,7 +271,6 @@ const UI = {
 export default function Page({ params }) {
   const slug = params?.slug;
 
-  // Services + create form
   const [services, setServices] = useState([]);
   const [serviceId, setServiceId] = useState("");
   const [start, setStart] = useState("");
@@ -285,12 +283,10 @@ export default function Page({ params }) {
   const [error, setError] = useState("");
   const [okMsg, setOkMsg] = useState("");
 
-  // Today timeline
   const [todayRows, setTodayRows] = useState([]);
   const [displayStartMin, setDisplayStartMin] = useState(8 * 60);
   const [displayEndMin, setDisplayEndMin] = useState(21 * 60);
 
-  // Business hours editor
   const [hours, setHours] = useState(() =>
     WEEKDAYS.map((w) => ({ weekday: w.k, open_time: "", close_time: "" }))
   );
@@ -321,7 +317,6 @@ export default function Page({ params }) {
     }
     setTodayRows(Array.isArray(data.rows) ? data.rows : []);
 
-    // SAFETY-NET: always align to full hours in UI
     if (typeof data.display_start_min === "number") {
       setDisplayStartMin(clamp(floorHour(data.display_start_min), 0, 24 * 60));
     }
@@ -377,6 +372,9 @@ export default function Page({ params }) {
         if (r.customer_email) metaParts.push(`Mail: ${r.customer_email}`);
         if (r.internal_note) metaParts.push(`Notiz: ${r.internal_note}`);
 
+        // ✅ FINAL SAFETY: some rows might miss status; default to "confirmed"
+        const statusLabel = (r.status ? String(r.status) : "confirmed").toLowerCase();
+
         return {
           id: r.id,
           top,
@@ -385,7 +383,7 @@ export default function Page({ params }) {
           service_name: r.service_name,
           customer_name: r.customer_name,
           meta: metaParts.join(" · "),
-          status: r.status,
+          status: statusLabel,
         };
       })
       .filter(Boolean)
@@ -454,7 +452,6 @@ export default function Page({ params }) {
       setOkMsg("");
       setHoursSaving(true);
 
-      // IMPORTANT: API expects { hours: [...] }
       const payload = hours.map((h) => ({
         weekday: h.weekday,
         open_time: h.open_time || null,
@@ -599,6 +596,8 @@ export default function Page({ params }) {
                     {b.customer_name ? <div style={UI.blockCustomer}>{b.customer_name}</div> : null}
                     {b.meta ? <div style={UI.blockMeta}>{b.meta}</div> : null}
                   </div>
+
+                  {/* ✅ ALWAYS render status (with fallback) */}
                   <div style={UI.blockStatus}>{b.status}</div>
                 </div>
               ))}
