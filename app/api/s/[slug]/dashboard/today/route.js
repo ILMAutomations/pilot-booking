@@ -67,8 +67,13 @@ export async function GET(req, { params }) {
       const openMin = minutesFromTimeStr(bhRes.rows[0].open_time);
       const closeMin = minutesFromTimeStr(bhRes.rows[0].close_time);
       if (openMin != null && closeMin != null) {
-        displayStartMin = clamp(openMin - 60, 6 * 60, 22 * 60);
-        displayEndMin = clamp(closeMin + 60, 6 * 60, 22 * 60);
+      // Raw padded window
+let rawStart = clamp(openMin - 60, 6 * 60, 22 * 60);
+let rawEnd = clamp(closeMin + 60, 6 * 60, 22 * 60);
+
+// Round to full hours for visual alignment
+displayStartMin = Math.floor(rawStart / 60) * 60;
+displayEndMin = Math.ceil(rawEnd / 60) * 60;  
       }
     }
 
