@@ -40,8 +40,7 @@ const UI = {
     borderRadius: 18,
     border: "1px solid rgba(35, 48, 68, 0.9)",
     background: "rgba(11, 18, 32, 0.72)",
-    boxShadow:
-      "0 12px 30px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.03)",
+    boxShadow: "0 12px 30px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.03)",
     backdropFilter: "blur(6px)",
     padding: 18,
   },
@@ -59,7 +58,9 @@ const UI = {
     height: 34,
     padding: "0 12px",
     borderRadius: 999,
-    border: active ? "1px solid rgba(59, 130, 246, 0.55)" : "1px solid rgba(35,48,68,0.9)",
+    border: active
+      ? "1px solid rgba(59, 130, 246, 0.55)"
+      : "1px solid rgba(35,48,68,0.9)",
     background: active ? "rgba(59, 130, 246, 0.16)" : "rgba(2,6,23,0.35)",
     color: active ? "#DBEAFE" : "#CBD5E1",
     fontWeight: 650,
@@ -106,6 +107,7 @@ const UI = {
   },
   itemTime: { fontSize: 12, fontWeight: 800, color: "#E5E7EB" },
   itemService: { fontSize: 12, color: "#CBD5E1" },
+  itemCustomer: { fontSize: 12, color: "#C7D2FE" },
   itemMeta: { fontSize: 11, color: "#93A4BF" },
 
   empty: {
@@ -201,6 +203,7 @@ export default function Page({ params }) {
                         <div key={r.id} style={UI.item}>
                           <div style={UI.itemTime}>{time}</div>
                           <div style={UI.itemService}>{r.service_name || "Service"}</div>
+                          <div style={UI.itemCustomer}>{r.customer_name || "Kunde"}</div>
                           <div style={UI.itemMeta}>{r.status}</div>
                         </div>
                       );
