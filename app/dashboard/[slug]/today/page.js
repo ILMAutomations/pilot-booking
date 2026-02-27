@@ -19,13 +19,6 @@ function minutesFromISO(iso) {
   return d.getHours() * 60 + d.getMinutes();
 }
 
-// Fix: Supabase returns time like "10:15:00" -> input[type=time] needs "10:15"
-function toHHMM(t) {
-  if (!t) return "";
-  const s = String(t);
-  return s.length >= 5 ? s.slice(0, 5) : s;
-}
-
 // ====== UI THEME (Dark, calm, owner-tool) ======
 const UI = {
   page: {
@@ -41,11 +34,10 @@ const UI = {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 16,
+    marginBottom: 14,
   },
   title: { fontSize: 24, fontWeight: 700, letterSpacing: "-0.02em", margin: 0 },
   sub: { fontSize: 13, color: "#9CA3AF", marginTop: 4 },
-
   badge: {
     fontSize: 12,
     padding: "6px 10px",
@@ -54,23 +46,6 @@ const UI = {
     background: "rgba(17, 24, 39, 0.55)",
     color: "#C7D2FE",
   },
-
-  tabsRow: {
-    display: "flex",
-    gap: 8,
-    marginBottom: 14,
-  },
-  tab: (active) => ({
-    height: 36,
-    padding: "0 12px",
-    borderRadius: 12,
-    border: "1px solid rgba(35,48,68,0.9)",
-    background: active ? "rgba(59,130,246,0.20)" : "rgba(2,6,23,0.45)",
-    color: active ? "#DBEAFE" : "#CBD5E1",
-    cursor: "pointer",
-    fontWeight: 650,
-  }),
-
   card: {
     borderRadius: 18,
     border: "1px solid rgba(35, 48, 68, 0.9)",
@@ -93,7 +68,7 @@ const UI = {
 
   controlsRow: {
     display: "grid",
-    gridTemplateColumns: "1.2fr 1fr auto",
+    gridTemplateColumns: "1.1fr 1fr auto",
     gap: 10,
     alignItems: "center",
   },
@@ -103,10 +78,33 @@ const UI = {
     height: 40,
     padding: "0 12px",
     borderRadius: 12,
-    border: "1px solid rgba(35, 48, 68, 0.95)",
-    background: "rgba(2, 6, 23, 0.72)",
+    border: "1px solid rgba(148, 163, 184, 0.35)",
+    background: "rgba(2, 6, 23, 0.78)",
     color: "#E5E7EB",
     outline: "none",
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)",
+  },
+
+  smallLabel: { fontSize: 12, color: "#93A4BF", margin: "10px 0 6px" },
+
+  grid2: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: 10,
+    marginTop: 10,
+  },
+
+  textarea: {
+    width: "100%",
+    minHeight: 70,
+    padding: "10px 12px",
+    borderRadius: 12,
+    border: "1px solid rgba(148, 163, 184, 0.35)",
+    background: "rgba(2, 6, 23, 0.78)",
+    color: "#E5E7EB",
+    outline: "none",
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)",
+    resize: "vertical",
   },
 
   button: {
@@ -116,7 +114,7 @@ const UI = {
     border: "1px solid rgba(59, 130, 246, 0.45)",
     background: "rgba(59, 130, 246, 0.16)",
     color: "#DBEAFE",
-    fontWeight: 700,
+    fontWeight: 600,
     cursor: "pointer",
     boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
   },
@@ -136,10 +134,24 @@ const UI = {
     padding: "10px 12px",
     borderRadius: 12,
     border: "1px solid rgba(34, 197, 94, 0.35)",
-    background: "rgba(20, 83, 45, 0.18)",
+    background: "rgba(20, 83, 45, 0.25)",
     color: "#86EFAC",
     fontSize: 13,
   },
+
+  tabsRow: { display: "flex", gap: 8, marginBottom: 14 },
+  tab: (active) => ({
+    padding: "8px 12px",
+    borderRadius: 999,
+    border: "1px solid rgba(35, 48, 68, 0.9)",
+    background: active ? "rgba(59, 130, 246, 0.16)" : "rgba(2, 6, 23, 0.35)",
+    color: active ? "#DBEAFE" : "#CBD5E1",
+    fontSize: 13,
+    textDecoration: "none",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+  }),
 
   grid: {
     display: "grid",
@@ -185,73 +197,30 @@ const UI = {
     justifyContent: "space-between",
   }),
   blockTime: { fontWeight: 800, letterSpacing: "-0.01em", fontSize: 13, color: "#E5E7EB" },
-  blockService: { fontSize: 13, color: "#CBD5E1" },
+  blockService: { fontSize: 13, color: "#CBD5E1", marginTop: 2 },
+  blockCustomer: { fontSize: 12, color: "#C7D2FE", marginTop: 6 },
   blockMeta: { fontSize: 12, color: "#93A4BF" },
-
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: 750,
-    color: "#E5E7EB",
-    marginTop: 18,
-    marginBottom: 10,
-  },
-
-  hoursTable: {
-    display: "grid",
-    gridTemplateColumns: "140px 1fr 1fr 120px",
-    gap: 10,
-    alignItems: "center",
-  },
-  hoursRow: {
-    display: "contents",
-  },
-  hoursLabel: {
-    fontSize: 13,
-    color: "#CBD5E1",
-  },
-  hoursSmall: {
-    fontSize: 12,
-    color: "#9CA3AF",
-  },
 };
-
-const WEEKDAY_LABEL = {
-  1: "Montag",
-  2: "Dienstag",
-  3: "Mittwoch",
-  4: "Donnerstag",
-  5: "Freitag",
-  6: "Samstag",
-  7: "Sonntag",
-};
-
-function buildDefaultHoursState() {
-  // closed by default (empty times)
-  return Array.from({ length: 7 }).map((_, i) => ({
-    weekday: i + 1,
-    open_time: "",
-    close_time: "",
-    closed: true,
-  }));
-}
 
 export default function Page({ params }) {
   const slug = params?.slug;
 
-  const [activeTab, setActiveTab] = useState("today"); // "today" | "overview"
   const [services, setServices] = useState([]);
   const [serviceId, setServiceId] = useState("");
   const [start, setStart] = useState("");
+
+  // Customer fields
+  const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [customerEmail, setCustomerEmail] = useState("");
+  const [internalNote, setInternalNote] = useState("");
+
   const [error, setError] = useState("");
   const [okMsg, setOkMsg] = useState("");
 
   const [todayRows, setTodayRows] = useState([]);
   const [displayStartMin, setDisplayStartMin] = useState(8 * 60);
   const [displayEndMin, setDisplayEndMin] = useState(21 * 60);
-
-  const [weekDays, setWeekDays] = useState([]); // from /dashboard/week
-  const [hoursDraft, setHoursDraft] = useState(buildDefaultHoursState());
-  const [hoursSaving, setHoursSaving] = useState(false);
 
   const PX_PER_MIN = 2;
 
@@ -261,7 +230,6 @@ export default function Page({ params }) {
 
   async function loadServices() {
     if (!slug) return;
-    setError("");
     const res = await fetch(`/api/s/${slug}/services`, { cache: "no-store" });
     const data = await res.json().catch(() => ({}));
     const arr = Array.isArray(data.services) ? data.services : [];
@@ -273,7 +241,7 @@ export default function Page({ params }) {
     const res = await fetch(`/api/s/${slug}/dashboard/today`, { cache: "no-store" });
     const data = await res.json().catch(() => ({}));
     if (data?.error) {
-      setError("Technischer Fehler. Bitte erneut versuchen.");
+      setError(data.error);
       setTodayRows([]);
       return;
     }
@@ -282,57 +250,9 @@ export default function Page({ params }) {
     if (typeof data.display_end_min === "number") setDisplayEndMin(data.display_end_min);
   }
 
-  async function loadWeek() {
-    if (!slug) return;
-    const res = await fetch(`/api/s/${slug}/dashboard/week`, { cache: "no-store" });
-    const data = await res.json().catch(() => ({}));
-    if (data?.error) {
-      setError("Technischer Fehler. Bitte erneut versuchen.");
-      setWeekDays([]);
-      return;
-    }
-    setWeekDays(Array.isArray(data.days) ? data.days : []);
-  }
-
-  async function loadBusinessHours() {
-    if (!slug) return;
-
-    const res = await fetch(`/api/s/${slug}/business-hours`, { cache: "no-store" });
-    const data = await res.json().catch(() => ({}));
-
-    if (data?.error) {
-      setError("Technischer Fehler. Bitte erneut versuchen.");
-      return;
-    }
-
-    const rows = Array.isArray(data.rows) ? data.rows : [];
-    const base = buildDefaultHoursState();
-
-    for (const r of rows) {
-      const wd = Number(r.weekday);
-      if (!wd || wd < 1 || wd > 7) continue;
-
-      const idx = wd - 1;
-      base[idx] = {
-        weekday: wd,
-        open_time: toHHMM(r.open_time),
-        close_time: toHHMM(r.close_time),
-        closed: false,
-      };
-    }
-
-    setHoursDraft(base);
-  }
-
   useEffect(() => {
-    if (!slug) return;
-    setError("");
-    setOkMsg("");
-
     loadServices();
     loadToday();
-    loadWeek();
-    loadBusinessHours();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
 
@@ -355,6 +275,7 @@ export default function Page({ params }) {
           height,
           startLabel: label,
           service_name: r.service_name,
+          customer_name: r.customer_name,
           status: r.status,
         };
       })
@@ -373,6 +294,12 @@ export default function Page({ params }) {
       }
       if (!start) {
         setError("Bitte Startzeit auswählen.");
+        return;
+      }
+
+      const name = String(customerName || "").trim();
+      if (!name) {
+        setError("Bitte Kundennamen eingeben.");
         return;
       }
 
@@ -400,6 +327,10 @@ export default function Page({ params }) {
           service_id: serviceId,
           start_at: startISO,
           end_at: endISO,
+          customer_name: name,
+          customer_phone: customerPhone || null,
+          customer_email: customerEmail || null,
+          internal_note: internalNote || null,
         }),
       });
 
@@ -415,93 +346,27 @@ export default function Page({ params }) {
           setError("Außerhalb der Öffnungszeiten. Bitte andere Uhrzeit wählen.");
           return;
         }
+        if (data?.code === "MISSING_CUSTOMER_NAME") {
+          setError("Bitte Kundennamen eingeben.");
+          return;
+        }
         if (String(data?.error || "").includes("no_overlapping_appointments")) {
           setError("Zeit ist bereits belegt. Bitte andere Uhrzeit wählen.");
           return;
         }
-        setError("Technischer Fehler. Bitte erneut versuchen.");
-        return;
-      }
-
-      await loadToday();
-      await loadWeek();
-      setOkMsg("Termin erstellt.");
-    } catch (e) {
-      setError("Technischer Fehler. Bitte erneut versuchen.");
-    }
-  }
-
-  function setHourField(weekday, key, value) {
-    setHoursDraft((prev) =>
-      prev.map((h) => {
-        if (h.weekday !== weekday) return h;
-
-        const next = { ...h };
-        if (key === "open_time") next.open_time = value;
-        if (key === "close_time") next.close_time = value;
-
-        // if both times present -> open
-        const hasBoth = !!next.open_time && !!next.close_time;
-        next.closed = !hasBoth;
-
-        return next;
-      })
-    );
-  }
-
-  function toggleClosed(weekday) {
-    setHoursDraft((prev) =>
-      prev.map((h) => {
-        if (h.weekday !== weekday) return h;
-        const next = { ...h };
-
-        const newClosed = !next.closed;
-        next.closed = newClosed;
-        if (newClosed) {
-          next.open_time = "";
-          next.close_time = "";
-        }
-        return next;
-      })
-    );
-  }
-
-  async function saveBusinessHours() {
-    try {
-      setError("");
-      setOkMsg("");
-      setHoursSaving(true);
-
-      // payload: weekday 1..7
-      const payload = {
-        hours: hoursDraft.map((h) => ({
-          weekday: h.weekday,
-          open_time: h.closed ? null : h.open_time, // "HH:MM"
-          close_time: h.closed ? null : h.close_time, // "HH:MM"
-          closed: h.closed,
-        })),
-      };
-
-      const res = await fetch(`/api/s/${slug}/business-hours`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
         setError(data?.error || "Technischer Fehler. Bitte erneut versuchen.");
         return;
       }
 
       setOkMsg("Gespeichert.");
-      await loadBusinessHours();
-      await loadToday(); // display window might change
-      await loadWeek();
+      setCustomerName("");
+      setCustomerPhone("");
+      setCustomerEmail("");
+      setInternalNote("");
+
+      await loadToday();
     } catch (e) {
       setError("Technischer Fehler. Bitte erneut versuchen.");
-    } finally {
-      setHoursSaving(false);
     }
   }
 
@@ -514,19 +379,19 @@ export default function Page({ params }) {
       <div style={UI.shell}>
         <div style={UI.headerRow}>
           <div>
-            <h2 style={UI.title}>Dashboard</h2>
+            <h2 style={UI.title}>Dashboard Today</h2>
             <div style={UI.sub}>Salon: {slug}</div>
           </div>
           <div style={UI.badge}>Pilot</div>
         </div>
 
         <div style={UI.tabsRow}>
-          <button style={UI.tab(activeTab === "today")} onClick={() => setActiveTab("today")}>
+          <a href={`/dashboard/${slug}/today`} style={UI.tab(true)}>
             Today
-          </button>
-          <button style={UI.tab(activeTab === "overview")} onClick={() => setActiveTab("overview")}>
+          </a>
+          <a href={`/dashboard/${slug}/overview`} style={UI.tab(false)}>
             Overview
-          </button>
+          </a>
         </div>
 
         <div style={UI.card}>
@@ -545,147 +410,84 @@ export default function Page({ params }) {
                 ))}
               </select>
 
-              <input type="datetime-local" value={start} onChange={(e) => setStart(e.target.value)} style={UI.input} />
+              <input
+                type="datetime-local"
+                value={start}
+                onChange={(e) => setStart(e.target.value)}
+                style={UI.input}
+              />
 
               <button onClick={createAppointment} style={UI.button}>
                 Create
               </button>
             </div>
 
+            <div style={UI.smallLabel}>Kunde</div>
+            <div style={UI.grid2}>
+              <input
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+                placeholder="Name (Pflicht)"
+                style={UI.input}
+              />
+              <input
+                value={customerPhone}
+                onChange={(e) => setCustomerPhone(e.target.value)}
+                placeholder="Telefon (optional)"
+                style={UI.input}
+              />
+              <input
+                value={customerEmail}
+                onChange={(e) => setCustomerEmail(e.target.value)}
+                placeholder="E-Mail (optional)"
+                style={UI.input}
+              />
+              <div />
+            </div>
+
+            <div style={UI.smallLabel}>Interne Notiz (nur intern sichtbar)</div>
+            <textarea
+              value={internalNote}
+              onChange={(e) => setInternalNote(e.target.value)}
+              placeholder="z.B. Allergie / Wunsch / Hinweis…"
+              style={UI.textarea}
+            />
+
             {error && <div style={UI.error}>{error}</div>}
             {okMsg && <div style={UI.ok}>{okMsg}</div>}
           </div>
 
-          {activeTab === "today" ? (
-            <div style={UI.grid}>
-              <div style={UI.hourCol(timelineHeight)}>
-                {Array.from({ length: hourCount }).map((_, i) => {
-                  const minute = displayStartMin + i * 60;
-                  const hour = Math.floor(minute / 60);
-                  const top = (minute - displayStartMin) * PX_PER_MIN;
-                  return (
-                    <div key={i} style={{ ...UI.hourLabel, top }}>
-                      {pad2(hour)}:00
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div style={UI.canvas(timelineHeight)}>
-                {Array.from({ length: hourCount }).map((_, i) => {
-                  const top = i * 60 * PX_PER_MIN;
-                  return <div key={i} style={UI.hourLine(top)} />;
-                })}
-
-                {blocks.map((b) => (
-                  <div key={b.id} style={UI.block(b.top, b.height)}>
-                    <div>
-                      <div style={UI.blockTime}>{b.startLabel}</div>
-                      <div style={UI.blockService}>{b.service_name || "Service"}</div>
-                    </div>
-                    <div style={UI.blockMeta}>{b.status}</div>
+          <div style={UI.grid}>
+            <div style={UI.hourCol(timelineHeight)}>
+              {Array.from({ length: hourCount }).map((_, i) => {
+                const minute = displayStartMin + i * 60;
+                const hour = Math.floor(minute / 60);
+                const top = (minute - displayStartMin) * PX_PER_MIN;
+                return (
+                  <div key={i} style={{ ...UI.hourLabel, top }}>
+                    {pad2(hour)}:00
                   </div>
-                ))}
-              </div>
+                );
+              })}
             </div>
-          ) : (
-            <div>
-              <div style={UI.sectionTitle}>Woche</div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 10 }}>
-                {(weekDays || []).map((d) => (
-                  <div
-                    key={d.date}
-                    style={{
-                      borderRadius: 16,
-                      border: "1px solid rgba(35,48,68,0.9)",
-                      background: "rgba(2,6,23,0.45)",
-                      padding: 12,
-                      minHeight: 120,
-                    }}
-                  >
-                    <div style={{ fontSize: 12, color: "#9CA3AF", marginBottom: 8 }}>{d.date}</div>
-                    {(d.rows || []).length === 0 ? (
-                      <div style={{ fontSize: 12, color: "#93A4BF" }}>Keine Termine</div>
-                    ) : (
-                      (d.rows || []).map((r) => {
-                        const st = new Date(r.start_at);
-                        const label = `${pad2(st.getHours())}:${pad2(st.getMinutes())}`;
-                        return (
-                          <div
-                            key={r.id}
-                            style={{
-                              borderRadius: 12,
-                              border: "1px solid rgba(255,255,255,0.08)",
-                              background: "rgba(11,18,32,0.65)",
-                              padding: "8px 10px",
-                              marginBottom: 8,
-                            }}
-                          >
-                            <div style={{ fontSize: 12, fontWeight: 800 }}>{label}</div>
-                            <div style={{ fontSize: 12, color: "#CBD5E1" }}>{r.service_name || "Service"}</div>
-                            <div style={{ fontSize: 11, color: "#93A4BF" }}>{r.status}</div>
-                          </div>
-                        );
-                      })
-                    )}
+
+            <div style={UI.canvas(timelineHeight)}>
+              {Array.from({ length: hourCount }).map((_, i) => {
+                const top = i * 60 * PX_PER_MIN;
+                return <div key={i} style={UI.hourLine(top)} />;
+              })}
+
+              {blocks.map((b) => (
+                <div key={b.id} style={UI.block(b.top, b.height)}>
+                  <div>
+                    <div style={UI.blockTime}>{b.startLabel}</div>
+                    <div style={UI.blockService}>{b.service_name || "Service"}</div>
+                    <div style={UI.blockCustomer}>{b.customer_name || "Kunde"}</div>
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div style={UI.sectionTitle}>Öffnungszeiten (Mo–So)</div>
-          <div style={UI.hoursTable}>
-            <div style={{ ...UI.hoursSmall, fontWeight: 700 }}>Tag</div>
-            <div style={{ ...UI.hoursSmall, fontWeight: 700 }}>Open</div>
-            <div style={{ ...UI.hoursSmall, fontWeight: 700 }}>Close</div>
-            <div style={{ ...UI.hoursSmall, fontWeight: 700 }}>Status</div>
-
-            {hoursDraft.map((h) => (
-              <div key={h.weekday} style={UI.hoursRow}>
-                <div style={UI.hoursLabel}>{WEEKDAY_LABEL[h.weekday]}</div>
-
-                <input
-                  type="time"
-                  value={h.open_time}
-                  disabled={h.closed}
-                  onChange={(e) => setHourField(h.weekday, "open_time", e.target.value)}
-                  style={UI.input}
-                />
-
-                <input
-                  type="time"
-                  value={h.close_time}
-                  disabled={h.closed}
-                  onChange={(e) => setHourField(h.weekday, "close_time", e.target.value)}
-                  style={UI.input}
-                />
-
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <button
-                    type="button"
-                    onClick={() => toggleClosed(h.weekday)}
-                    style={{
-                      ...UI.button,
-                      height: 36,
-                      padding: "0 12px",
-                      borderRadius: 12,
-                      background: h.closed ? "rgba(148,163,184,0.12)" : "rgba(34,197,94,0.14)",
-                      border: h.closed ? "1px solid rgba(148,163,184,0.22)" : "1px solid rgba(34,197,94,0.22)",
-                      color: h.closed ? "#CBD5E1" : "#BBF7D0",
-                    }}
-                  >
-                    {h.closed ? "Closed" : "Open"}
-                  </button>
+                  <div style={UI.blockMeta}>{b.status}</div>
                 </div>
-              </div>
-            ))}
-          </div>
-
-          <div style={{ marginTop: 12, display: "flex", justifyContent: "flex-end", gap: 10 }}>
-            <button onClick={saveBusinessHours} style={{ ...UI.button, opacity: hoursSaving ? 0.7 : 1 }}>
-              {hoursSaving ? "Speichert..." : "Speichern"}
-            </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
