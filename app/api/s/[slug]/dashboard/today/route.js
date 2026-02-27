@@ -1,18 +1,12 @@
 import { query } from "@/lib/db";
 
-function weekdayBerlin(d = new Date()) {
-  // JS: 0=Sun..6=Sat -> DB: 1=Mon..7=Sun
-  const day = d.getDay();
-  return day === 0 ? 7 : day;
-}
-
-function timeToMinutes(t) {
-  // "10:15:00" | "10:15" -> minutes
+function minutesFromTimeStr(t) {
+  // t like "10:15:00" or "10:15"
   if (!t) return null;
   const parts = String(t).split(":");
-  const hh = Number(parts[0]);
+  const hh = Number(parts[0] || 0);
   const mm = Number(parts[1] || 0);
-  if (!Number.isFinite(hh) || !Number.isFinite(mm)) return null;
+  if (Number.isNaN(hh) || Number.isNaN(mm)) return null;
   return hh * 60 + mm;
 }
 
@@ -28,90 +22,93 @@ export async function GET(req, { params }) {
       return Response.json({ error: "Missing slug" }, { status: 400 });
     }
 
-    // Resolve salon_id
-    const salonRes = await query("select id from salons where slug = $1 limit 1", [slug]);
-    if (salonRes.rowCount === 0) {
+    // 1) Resolve salon + timezone
+    const salonRes = await query(
+      `select id, slug, timezone
+       from public.salons
+       where slug = $1
+       limit 1`,
+      [slug]
+    );
+
+    if (!salonRes.rowCount) {
       return Response.json({ error: "Salon not found" }, { status: 404 });
     }
-    const salon_id = salonRes.rows[0].id;
 
-    // Today bounds (UTC day)
-    const now = new Date();
-    const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0));
-    const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 59, 59));
+    const salon = salonRes.rows[0];
+    const salonId = salon.id;
+    const tz = salon.timezone || "Europe/Berlin";
 
-    // Rows (include customer fields)
-    const rowsRes = await query(
-      `
-      select
-        a.id,
-        a.salon_id,
-        a.service_id,
-        a.customer_id,
-        a.kind,
-        a.status,
-        a.start_at,
-        a.end_at,
-        a.notes,
-        a.gcal_event_id,
-        a.gcal_sync_status,
-        a.gcal_last_sync_at,
-        a.gcal_sync_error,
-        a.created_at,
-        a.updated_at,
-        a.customer_name,
-        a.customer_phone,
-        a.customer_email,
-        a.customer_mail,
-        a.internal_note,
-        s.name as service_name
-      from appointments a
-      left join services s on s.id = a.service_id
-      where a.salon_id = $1
-        and a.start_at >= $2
-        and a.start_at <= $3
-      order by a.start_at asc
-      `,
-      [salon_id, start.toISOString(), end.toISOString()]
+    // 2) Determine "today" in salon timezone
+    // today_date: date in salon tz, weekday: ISO dow (Mon=1..Sun=7)
+    const todayInfoRes = await query(
+      `select
+         (now() at time zone $1)::date as today_date,
+         extract(isodow from (now() at time zone $1))::int as weekday`,
+      [tz]
     );
 
-    // Display window (based on business_hours for today — Berlin weekday)
-    const wd = weekdayBerlin(new Date());
+    const todayDate = todayInfoRes.rows[0].today_date; // e.g. 2026-02-27
+    const weekday = todayInfoRes.rows[0].weekday; // 1..7
+
+    // 3) Fetch business hours for today (may be null => closed)
     const bhRes = await query(
-      `
-      select open_time, close_time
-      from business_hours
-      where salon_id = $1 and weekday = $2
-      limit 1
-      `,
-      [salon_id, wd]
+      `select open_time, close_time
+       from public.business_hours
+       where salon_id = $1 and weekday = $2
+       limit 1`,
+      [salonId, weekday]
     );
 
-    let display_start_min = 8 * 60;
-    let display_end_min = 21 * 60;
+    let displayStartMin = 8 * 60;
+    let displayEndMin = 21 * 60;
 
-    if (bhRes.rowCount > 0) {
-      const openMin = timeToMinutes(bhRes.rows[0].open_time);
-      const closeMin = timeToMinutes(bhRes.rows[0].close_time);
+    if (bhRes.rowCount) {
+      const openMin = minutesFromTimeStr(bhRes.rows[0].open_time);
+      const closeMin = minutesFromTimeStr(bhRes.rows[0].close_time);
 
-      // Only if both present -> open day
       if (openMin != null && closeMin != null) {
-        display_start_min = clamp(openMin - 60, 6 * 60, 22 * 60);
-        display_end_min = clamp(closeMin + 60, 6 * 60, 22 * 60);
-        if (display_end_min <= display_start_min) {
-          display_start_min = 8 * 60;
-          display_end_min = 21 * 60;
-        }
+        // padding +-60min, clamp 06:00..22:00
+        displayStartMin = clamp(openMin - 60, 6 * 60, 22 * 60);
+        displayEndMin = clamp(closeMin + 60, 6 * 60, 22 * 60);
       }
     }
 
+    // 4) Appointments for "today" by salon timezone date
+    // IMPORTANT: customer_mail column name is used (not customer_email)
+    const apptRes = await query(
+      `select
+         a.id,
+         a.salon_id,
+         a.service_id,
+         a.customer_id,
+         a.kind,
+         a.status,
+         a.start_at,
+         a.end_at,
+         a.notes,
+         a.created_at,
+         a.updated_at,
+         a.customer_name,
+         a.customer_phone,
+         a.customer_mail,
+         a.internal_note,
+         s.name as service_name
+       from public.appointments a
+       left join public.services s on s.id = a.service_id
+       where a.salon_id = $1
+         and (a.start_at at time zone $2)::date = $3::date
+       order by a.start_at asc`,
+      [salonId, tz, todayDate]
+    );
+
     return Response.json({
-      slug,
-      salon_id,
-      today_count: rowsRes.rows.length,
-      rows: rowsRes.rows,
-      display_start_min,
-      display_end_min,
+      slug: salon.slug,
+      salon_id: salonId,
+      today_count: apptRes.rows.length,
+      rows: apptRes.rows,
+      display_start_min: displayStartMin,
+      display_end_min: displayEndMin,
     });
   } catch (error) {
     console.error("[API_ERROR]", {
@@ -119,6 +116,9 @@ export async function GET(req, { params }) {
       slug,
       message: error?.message,
     });
-    return Response.json({ error: "Technischer Fehler. Bitte erneut versuchen." }, { status: 500 });
+    return Response.json(
+      { error: "Technischer Fehler. Bitte erneut versuchen." },
+      { status: 500 }
+    );
   }
 }
