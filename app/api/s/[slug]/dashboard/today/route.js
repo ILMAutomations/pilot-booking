@@ -1,72 +1,115 @@
 import { query } from "@/lib/db";
 
-function json(data, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { "Content-Type": "application/json" },
-  });
+function weekdayBerlin(d = new Date()) {
+  // JS: 0=Sun..6=Sat -> DB: 1=Mon..7=Sun
+  const day = d.getDay();
+  return day === 0 ? 7 : day;
+}
+
+function timeToMinutes(t) {
+  // "10:15:00" | "10:15" -> minutes
+  if (!t) return null;
+  const parts = String(t).split(":");
+  const hh = Number(parts[0]);
+  const mm = Number(parts[1] || 0);
+  if (!Number.isFinite(hh) || !Number.isFinite(mm)) return null;
+  return hh * 60 + mm;
+}
+
+function clamp(n, min, max) {
+  return Math.max(min, Math.min(max, n));
 }
 
 export async function GET(req, { params }) {
   const slug = params?.slug;
 
   try {
-    if (!slug) return json({ error: "Missing slug" }, 400);
+    if (!slug) {
+      return Response.json({ error: "Missing slug" }, { status: 400 });
+    }
 
-    const salonRes = await query("select id from public.salons where slug=$1 limit 1", [slug]);
-    if (!salonRes.rowCount) return json({ error: "Salon not found" }, 404);
+    // Resolve salon_id
+    const salonRes = await query("select id from salons where slug = $1 limit 1", [slug]);
+    if (salonRes.rowCount === 0) {
+      return Response.json({ error: "Salon not found" }, { status: 404 });
+    }
     const salon_id = salonRes.rows[0].id;
 
-    // Today range in UTC (simple, matches existing behavior)
+    // Today bounds (UTC day)
     const now = new Date();
     const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0));
-    const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 0, 0));
+    const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 59, 59));
 
+    // Rows (include customer fields)
     const rowsRes = await query(
       `
       select
-        a.*,
+        a.id,
+        a.salon_id,
+        a.service_id,
+        a.customer_id,
+        a.kind,
+        a.status,
+        a.start_at,
+        a.end_at,
+        a.notes,
+        a.gcal_event_id,
+        a.gcal_sync_status,
+        a.gcal_last_sync_at,
+        a.gcal_sync_error,
+        a.created_at,
+        a.updated_at,
+        a.customer_name,
+        a.customer_phone,
+        a.customer_email,
+        a.customer_mail,
+        a.internal_note,
         s.name as service_name
-      from public.appointments a
-      join public.services s on s.id = a.service_id
+      from appointments a
+      left join services s on s.id = a.service_id
       where a.salon_id = $1
         and a.start_at >= $2
-        and a.start_at < $3
+        and a.start_at <= $3
       order by a.start_at asc
       `,
       [salon_id, start.toISOString(), end.toISOString()]
     );
 
-    // Display window from business hours (existing feature)
-    const jsDay = now.getDay(); // 0=Sun..6=Sat
-    const weekday = jsDay === 0 ? 7 : jsDay;
-
-    const bh = await query(
-      `select open_time, close_time from public.business_hours where salon_id=$1 and weekday=$2 limit 1`,
-      [salon_id, weekday]
+    // Display window (based on business_hours for today — Berlin weekday)
+    const wd = weekdayBerlin(new Date());
+    const bhRes = await query(
+      `
+      select open_time, close_time
+      from business_hours
+      where salon_id = $1 and weekday = $2
+      limit 1
+      `,
+      [salon_id, wd]
     );
 
     let display_start_min = 8 * 60;
     let display_end_min = 21 * 60;
 
-    if (bh.rowCount) {
-      const open = String(bh.rows[0].open_time || "08:00:00").slice(0, 5);
-      const close = String(bh.rows[0].close_time || "21:00:00").slice(0, 5);
-      const [oh, om] = open.split(":").map((x) => parseInt(x, 10));
-      const [ch, cm] = close.split(":").map((x) => parseInt(x, 10));
+    if (bhRes.rowCount > 0) {
+      const openMin = timeToMinutes(bhRes.rows[0].open_time);
+      const closeMin = timeToMinutes(bhRes.rows[0].close_time);
 
-      const openMin = oh * 60 + om;
-      const closeMin = ch * 60 + cm;
-
-      display_start_min = Math.max(6 * 60, openMin - 60);
-      display_end_min = Math.min(22 * 60, closeMin + 60);
+      // Only if both present -> open day
+      if (openMin != null && closeMin != null) {
+        display_start_min = clamp(openMin - 60, 6 * 60, 22 * 60);
+        display_end_min = clamp(closeMin + 60, 6 * 60, 22 * 60);
+        if (display_end_min <= display_start_min) {
+          display_start_min = 8 * 60;
+          display_end_min = 21 * 60;
+        }
+      }
     }
 
-    return json({
+    return Response.json({
       slug,
       salon_id,
       today_count: rowsRes.rows.length,
-      rows: rowsRes.rows, // includes customer_name/phone/email/internal_note columns automatically
+      rows: rowsRes.rows,
       display_start_min,
       display_end_min,
     });
@@ -76,6 +119,6 @@ export async function GET(req, { params }) {
       slug,
       message: error?.message,
     });
-    return json({ error: "Technischer Fehler. Bitte erneut versuchen." }, 500);
+    return Response.json({ error: "Technischer Fehler. Bitte erneut versuchen." }, { status: 500 });
   }
 }
