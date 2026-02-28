@@ -3,8 +3,11 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
+function pad2(n) {
+  return String(n).padStart(2, "0");
+}
+
 function formatDayTitle(isoDate) {
-  // isoDate = "2026-02-21"
   return isoDate;
 }
 
@@ -40,7 +43,8 @@ const UI = {
     borderRadius: 18,
     border: "1px solid rgba(35, 48, 68, 0.9)",
     background: "rgba(11, 18, 32, 0.72)",
-    boxShadow: "0 12px 30px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.03)",
+    boxShadow:
+      "0 12px 30px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.03)",
     backdropFilter: "blur(6px)",
     padding: 18,
   },
@@ -58,9 +62,7 @@ const UI = {
     height: 34,
     padding: "0 12px",
     borderRadius: 999,
-    border: active
-      ? "1px solid rgba(59, 130, 246, 0.55)"
-      : "1px solid rgba(35,48,68,0.9)",
+    border: active ? "1px solid rgba(59, 130, 246, 0.55)" : "1px solid rgba(35,48,68,0.9)",
     background: active ? "rgba(59, 130, 246, 0.16)" : "rgba(2,6,23,0.35)",
     color: active ? "#DBEAFE" : "#CBD5E1",
     fontWeight: 650,
@@ -107,7 +109,6 @@ const UI = {
   },
   itemTime: { fontSize: 12, fontWeight: 800, color: "#E5E7EB" },
   itemService: { fontSize: 12, color: "#CBD5E1" },
-  itemCustomer: { fontSize: 12, color: "#C7D2FE" },
   itemMeta: { fontSize: 11, color: "#93A4BF" },
 
   empty: {
@@ -183,7 +184,14 @@ export default function Page({ params }) {
 
           <div style={UI.grid}>
             {safeDays.map((d) => {
-              const rows = Array.isArray(d.rows) ? d.rows : [];
+              const rowsRaw = Array.isArray(d.rows) ? d.rows : [];
+              // ✅ keep it clean: sort by start_at
+              const rows = [...rowsRaw].sort((a, b) => {
+                const ta = new Date(a?.start_at || 0).getTime();
+                const tb = new Date(b?.start_at || 0).getTime();
+                return ta - tb;
+              });
+
               return (
                 <div key={d.date} style={UI.dayCard}>
                   <div style={UI.dayHeader}>
@@ -196,15 +204,16 @@ export default function Page({ params }) {
                   ) : (
                     rows.map((r) => {
                       const st = new Date(r.start_at);
-                      const hh = String(st.getHours()).padStart(2, "0");
-                      const mm = String(st.getMinutes()).padStart(2, "0");
+                      const hh = pad2(st.getHours());
+                      const mm = pad2(st.getMinutes());
                       const time = `${hh}:${mm}`;
+                      const status = (r?.status ? String(r.status) : "confirmed").toLowerCase();
+
                       return (
                         <div key={r.id} style={UI.item}>
                           <div style={UI.itemTime}>{time}</div>
                           <div style={UI.itemService}>{r.service_name || "Service"}</div>
-                          <div style={UI.itemCustomer}>{r.customer_name || "Kunde"}</div>
-                          <div style={UI.itemMeta}>{r.status}</div>
+                          <div style={UI.itemMeta}>{status}</div>
                         </div>
                       );
                     })
