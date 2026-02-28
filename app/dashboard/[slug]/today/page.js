@@ -20,32 +20,18 @@ function minutesFromISO(iso) {
   return d.getHours() * 60 + d.getMinutes();
 }
 
-function clamp(n, a, b) {
-  return Math.max(a, Math.min(b, n));
+function normalizeHHMM(v) {
+  if (!v) return "";
+  const s = String(v).slice(0, 5);
+  if (!/^\d{2}:\d{2}$/.test(s)) return "";
+  return s;
 }
 
-// ✅ 15-min grid helpers
-function floor15(min) {
-  return Math.floor(min / 15) * 15;
-}
-function ceil15(min) {
-  return Math.ceil(min / 15) * 15;
-}
-function ceilHour(min) {
-  return Math.ceil(min / 60) * 60;
+function weekdayLabelDe(weekday) {
+  const map = { 1: "Mo", 2: "Di", 3: "Mi", 4: "Do", 5: "Fr", 6: "Sa", 7: "So" };
+  return map[weekday] || String(weekday);
 }
 
-const WEEKDAYS = [
-  { k: 1, label: "Mo" },
-  { k: 2, label: "Di" },
-  { k: 3, label: "Mi" },
-  { k: 4, label: "Do" },
-  { k: 5, label: "Fr" },
-  { k: 6, label: "Sa" },
-  { k: 7, label: "So" },
-];
-
-// ====== UI THEME (Dark, calm, owner-tool) ======
 const UI = {
   page: {
     minHeight: "100vh",
@@ -56,6 +42,7 @@ const UI = {
       'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji"',
   },
   shell: { maxWidth: 1100, margin: "0 auto" },
+
   headerRow: {
     display: "flex",
     alignItems: "center",
@@ -82,12 +69,7 @@ const UI = {
     padding: 18,
   },
 
-  tabsRow: {
-    display: "flex",
-    gap: 10,
-    alignItems: "center",
-    marginBottom: 14,
-  },
+  tabsRow: { display: "flex", gap: 10, alignItems: "center", marginBottom: 14 },
   tab: (active) => ({
     display: "inline-flex",
     alignItems: "center",
@@ -113,27 +95,9 @@ const UI = {
     zIndex: 40,
     backdropFilter: "blur(6px)",
   },
-
-  controlsRow: {
-    display: "grid",
-    gridTemplateColumns: "1.2fr 1fr auto",
-    gap: 10,
-    alignItems: "center",
-  },
-
-  formRow2: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: 10,
-    marginTop: 10,
-  },
-  formRow2b: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: 10,
-    marginTop: 10,
-    alignItems: "start",
-  },
+  controlsGrid: { display: "grid", gridTemplateColumns: "1.2fr 1fr auto", gap: 10, alignItems: "center" },
+  controlsGrid2: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 10 },
+  controlsGrid3: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, alignItems: "start", marginTop: 10 },
 
   input: {
     width: "100%",
@@ -147,7 +111,7 @@ const UI = {
   },
   textarea: {
     width: "100%",
-    minHeight: 92,
+    minHeight: 88,
     padding: "10px 12px",
     borderRadius: 12,
     border: "1px solid rgba(35, 48, 68, 0.9)",
@@ -155,8 +119,9 @@ const UI = {
     color: "#E5E7EB",
     outline: "none",
     resize: "vertical",
+    lineHeight: 1.35,
   },
-  hint: { marginTop: 6, fontSize: 12, color: "#93A4BF" },
+  hint: { fontSize: 12, color: "#93A4BF", marginTop: 6 },
 
   button: {
     height: 40,
@@ -165,20 +130,9 @@ const UI = {
     border: "1px solid rgba(59, 130, 246, 0.45)",
     background: "rgba(59, 130, 246, 0.16)",
     color: "#DBEAFE",
-    fontWeight: 600,
+    fontWeight: 700,
     cursor: "pointer",
     boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
-    whiteSpace: "nowrap",
-  },
-
-  ok: {
-    marginTop: 10,
-    padding: "10px 12px",
-    borderRadius: 12,
-    border: "1px solid rgba(34, 197, 94, 0.35)",
-    background: "rgba(20, 83, 45, 0.22)",
-    color: "#86EFAC",
-    fontSize: 13,
   },
 
   error: {
@@ -190,16 +144,26 @@ const UI = {
     color: "#FCA5A5",
     fontSize: 13,
   },
-
-  grid: {
-    display: "grid",
-    gridTemplateColumns: "88px 1fr",
-    gap: 12,
-    alignItems: "start",
-    marginTop: 12,
+  ok: {
+    marginTop: 10,
+    padding: "10px 12px",
+    borderRadius: 12,
+    border: "1px solid rgba(34, 197, 94, 0.35)",
+    background: "rgba(20, 83, 45, 0.25)",
+    color: "#86EFAC",
+    fontSize: 13,
   },
+
+  grid: { display: "grid", gridTemplateColumns: "88px 1fr", gap: 12, marginTop: 12, alignItems: "start" },
   hourCol: (h) => ({ position: "relative", height: h, userSelect: "none", zIndex: 1 }),
-  hourLabel: { position: "absolute", fontSize: 12, color: "#93A4BF", transform: "translateY(-50%)" },
+  timeLabel: (isHour) => ({
+    position: "absolute",
+    fontSize: isHour ? 12 : 11,
+    fontWeight: isHour ? 800 : 600,
+    color: isHour ? "#E5E7EB" : "rgba(229,231,235,0.55)",
+    transform: "translateY(-50%)",
+    letterSpacing: "-0.01em",
+  }),
 
   canvas: (h) => ({
     position: "relative",
@@ -210,15 +174,13 @@ const UI = {
     overflow: "hidden",
     zIndex: 1,
   }),
-
-  // ✅ 15-min grid lines (hour lines a bit stronger)
-  gridLine: (top, strong) => ({
+  gridLine: (top, isHour) => ({
     position: "absolute",
     left: 0,
     right: 0,
     top,
     height: 1,
-    background: strong ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.05)",
+    background: isHour ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.06)",
   }),
 
   block: (top, height) => ({
@@ -235,49 +197,48 @@ const UI = {
     display: "flex",
     flexDirection: "column",
     justifyContent: "space-between",
-    overflow: "hidden",
   }),
-  blockTime: { fontWeight: 800, letterSpacing: "-0.01em", fontSize: 13, color: "#E5E7EB" },
+  blockTime: { fontWeight: 850, fontSize: 13, color: "#E5E7EB" },
   blockService: { fontSize: 13, color: "#CBD5E1", marginTop: 2 },
-  blockCustomer: { fontSize: 12, color: "#E5E7EB", marginTop: 2, fontWeight: 650 },
-  blockMeta: { fontSize: 12, color: "#93A4BF", marginTop: 4 },
-  blockStatus: { fontSize: 12, color: "#93A4BF" },
+  blockName: { fontSize: 12, color: "#E5E7EB", fontWeight: 750, marginTop: 4 },
+  blockDetails: { fontSize: 11, color: "#93A4BF", marginTop: 2, lineHeight: 1.25 },
+  blockStatus: { fontSize: 11, color: "#93A4BF" },
 
-  hoursTitle: { marginTop: 22, marginBottom: 10, fontSize: 14, fontWeight: 800, color: "#E5E7EB" },
+  sectionTitle: { fontSize: 14, fontWeight: 800, marginTop: 18, marginBottom: 10, color: "#E5E7EB" },
+
   hoursCard: {
+    marginTop: 14,
     borderRadius: 16,
-    border: "1px solid rgba(35, 48, 68, 0.9)",
-    background: "rgba(2, 6, 23, 0.35)",
+    border: "1px solid rgba(255,255,255,0.06)",
+    background: "rgba(2,6,23,0.28)",
     padding: 14,
-    marginTop: 10,
   },
-  hoursTable: { width: "100%", borderCollapse: "collapse" },
-  th: { textAlign: "left", fontSize: 12, color: "#93A4BF", fontWeight: 700, padding: "10px 8px" },
-  td: { padding: "10px 8px", borderTop: "1px solid rgba(255,255,255,0.06)" },
-  time: {
+  hoursTable: { width: "100%", borderCollapse: "separate", borderSpacing: "0 10px" },
+  hoursTh: { textAlign: "left", fontSize: 12, color: "#93A4BF", fontWeight: 700, paddingBottom: 6 },
+  hoursTd: { paddingRight: 10, verticalAlign: "middle" },
+  timeInput: {
+    width: 96,
     height: 34,
     padding: "0 10px",
     borderRadius: 10,
-    border: "1px solid rgba(35,48,68,0.9)",
-    background: "rgba(2,6,23,0.55)",
+    border: "1px solid rgba(35, 48, 68, 0.9)",
+    background: "rgba(2, 6, 23, 0.55)",
     color: "#E5E7EB",
     outline: "none",
-    width: 110,
   },
-  pill: (open) => ({
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    height: 28,
+  statusPill: (open) => ({
+    height: 30,
     padding: "0 10px",
     borderRadius: 999,
-    border: open ? "1px solid rgba(34,197,94,0.35)" : "1px solid rgba(148,163,184,0.20)",
-    background: open ? "rgba(20, 83, 45, 0.22)" : "rgba(15, 23, 42, 0.35)",
-    color: open ? "#86EFAC" : "#93A4BF",
+    border: open ? "1px solid rgba(34, 197, 94, 0.35)" : "1px solid rgba(148, 163, 184, 0.25)",
+    background: open ? "rgba(34, 197, 94, 0.12)" : "rgba(15, 23, 42, 0.35)",
+    color: open ? "#86EFAC" : "rgba(203,213,225,0.7)",
     fontSize: 12,
-    fontWeight: 700,
-    width: 80,
+    fontWeight: 800,
+    cursor: "pointer",
   }),
+  hoursSaveRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginTop: 10 },
+  small: { fontSize: 12, color: "#93A4BF" },
 };
 
 export default function Page({ params }) {
@@ -299,10 +260,13 @@ export default function Page({ params }) {
   const [displayStartMin, setDisplayStartMin] = useState(8 * 60);
   const [displayEndMin, setDisplayEndMin] = useState(21 * 60);
 
-  const [hours, setHours] = useState(() =>
-    WEEKDAYS.map((w) => ({ weekday: w.k, open_time: "", close_time: "" }))
-  );
-  const [hoursSaving, setHoursSaving] = useState(false);
+  const [hoursByDay, setHoursByDay] = useState(() => {
+    const init = {};
+    for (let w = 1; w <= 7; w++) init[w] = { open_time: "", close_time: "" };
+    return init;
+  });
+  const [hoursError, setHoursError] = useState("");
+  const [hoursOk, setHoursOk] = useState("");
 
   const PX_PER_MIN = 2;
 
@@ -314,59 +278,59 @@ export default function Page({ params }) {
     if (!slug) return;
     const res = await fetch(`/api/s/${slug}/services`, { cache: "no-store" });
     const data = await res.json().catch(() => ({}));
-    const arr = Array.isArray(data.services) ? data.services : [];
-    setServices(arr);
+    setServices(Array.isArray(data.services) ? data.services : []);
   }
 
   async function loadToday() {
     if (!slug) return;
     const res = await fetch(`/api/s/${slug}/dashboard/today`, { cache: "no-store" });
     const data = await res.json().catch(() => ({}));
-    if (data?.error) {
-      setError(data.error);
+    if (!res.ok || data?.error) {
+      setError(data?.error || "Technischer Fehler. Bitte erneut versuchen.");
       setTodayRows([]);
       return;
     }
-
+    setError("");
     setTodayRows(Array.isArray(data.rows) ? data.rows : []);
-
-    // ✅ snap to 15-min grid (NO rounding to full hours)
-    if (typeof data.display_start_min === "number") {
-      setDisplayStartMin(clamp(floor15(data.display_start_min), 0, 24 * 60));
-    }
-    if (typeof data.display_end_min === "number") {
-      setDisplayEndMin(clamp(ceil15(data.display_end_min), 0, 24 * 60));
-    }
+    if (typeof data.display_start_min === "number") setDisplayStartMin(data.display_start_min);
+    if (typeof data.display_end_min === "number") setDisplayEndMin(data.display_end_min);
   }
 
-  async function loadBusinessHours() {
+  async function loadHours() {
     if (!slug) return;
+    setHoursError("");
     const res = await fetch(`/api/s/${slug}/business-hours`, { cache: "no-store" });
     const data = await res.json().catch(() => ({}));
-    const rows = Array.isArray(data.rows) ? data.rows : Array.isArray(data) ? data : [];
-    const byDay = new Map();
-    for (const r of rows) {
-      if (r && typeof r.weekday === "number") byDay.set(r.weekday, r);
+    const arr = Array.isArray(data.hours) ? data.hours : [];
+
+    const next = {};
+    for (let w = 1; w <= 7; w++) next[w] = { open_time: "", close_time: "" };
+
+    for (const r of arr) {
+      const w = Number(r.weekday);
+      if (w >= 1 && w <= 7) {
+        next[w] = { open_time: normalizeHHMM(r.open_time), close_time: normalizeHHMM(r.close_time) };
+      }
     }
-    const next = WEEKDAYS.map((w) => {
-      const r = byDay.get(w.k);
-      return {
-        weekday: w.k,
-        open_time: r?.open_time || "",
-        close_time: r?.close_time || "",
-      };
-    });
-    setHours(next);
+    setHoursByDay(next);
   }
 
   useEffect(() => {
-    setError("");
     setOkMsg("");
+    setHoursOk("");
     loadServices();
     loadToday();
-    loadBusinessHours();
+    loadHours();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
+
+  const ticks15 = useMemo(() => {
+    const start = Math.floor(displayStartMin / 15) * 15;
+    const end = Math.ceil(displayEndMin / 15) * 15;
+    const out = [];
+    for (let m = start; m <= end; m += 15) out.push(m);
+    return out;
+  }, [displayStartMin, displayEndMin]);
 
   const blocks = useMemo(() => {
     return (todayRows || [])
@@ -376,17 +340,10 @@ export default function Page({ params }) {
         if (startMin == null || endMin == null) return null;
 
         const top = (startMin - displayStartMin) * PX_PER_MIN;
-        const height = Math.max(44, (endMin - startMin) * PX_PER_MIN);
+        const height = Math.max(32, (endMin - startMin) * PX_PER_MIN);
 
         const st = new Date(r.start_at);
         const label = `${pad2(st.getHours())}:${pad2(st.getMinutes())}`;
-
-        const metaParts = [];
-        if (r.customer_phone) metaParts.push(`Tel: ${r.customer_phone}`);
-        if (r.customer_email) metaParts.push(`Mail: ${r.customer_email}`);
-        if (r.internal_note) metaParts.push(`Notiz: ${r.internal_note}`);
-
-        const statusLabel = (r.status ? String(r.status) : "confirmed").toLowerCase();
 
         return {
           id: r.id,
@@ -394,9 +351,11 @@ export default function Page({ params }) {
           height,
           startLabel: label,
           service_name: r.service_name,
+          status: r.status,
           customer_name: r.customer_name,
-          meta: metaParts.join(" · "),
-          status: statusLabel,
+          customer_phone: r.customer_phone,
+          customer_email: r.customer_email,
+          internal_note: r.internal_note,
         };
       })
       .filter(Boolean)
@@ -410,7 +369,7 @@ export default function Page({ params }) {
 
       if (!serviceId) return setError("Bitte Service auswählen.");
       if (!start) return setError("Bitte Startzeit auswählen.");
-      if (!customerName.trim()) return setError("Bitte Kundennamen eingeben.");
+      if (!customerName.trim()) return setError("Bitte Kundennamen eintragen.");
 
       const svc = services.find((s) => s.id === serviceId);
       const duration = Number(svc?.duration_min || 0);
@@ -431,8 +390,8 @@ export default function Page({ params }) {
           start_at: startISO,
           end_at: endISO,
           customer_name: customerName.trim(),
-          customer_phone: customerPhone.trim() || null,
-          customer_email: customerEmail.trim() || null,
+          phone: customerPhone.trim() || null,
+          email: customerEmail.trim() || null,
           internal_note: internalNote.trim() || null,
         }),
       });
@@ -442,67 +401,85 @@ export default function Page({ params }) {
       if (res.status === 409) return setError("Zeit ist bereits belegt. Bitte andere Uhrzeit wählen.");
 
       if (!res.ok) {
-        if (data?.code === "OUTSIDE_HOURS") {
-          return setError("Außerhalb der Öffnungszeiten. Bitte andere Uhrzeit wählen.");
-        }
-        if (String(data?.error || "").includes("no_overlapping_appointments")) {
+        if (data?.code === "OUTSIDE_HOURS") return setError("Außerhalb der Öffnungszeiten. Bitte andere Uhrzeit wählen.");
+        if (String(data?.error || "").includes("no_overlapping_appointments"))
           return setError("Zeit ist bereits belegt. Bitte andere Uhrzeit wählen.");
-        }
         return setError(data?.error || "Technischer Fehler. Bitte erneut versuchen.");
       }
 
-      await loadToday();
       setOkMsg("Termin erstellt.");
-    } catch (e) {
+      await loadToday();
+    } catch {
       setError("Technischer Fehler. Bitte erneut versuchen.");
     }
   }
 
-  async function saveBusinessHours() {
-    try {
-      if (!slug) return;
-      setError("");
-      setOkMsg("");
-      setHoursSaving(true);
+  function isDayOpen(w) {
+    const o = normalizeHHMM(hoursByDay[w]?.open_time);
+    const c = normalizeHHMM(hoursByDay[w]?.close_time);
+    return !!(o && c);
+  }
 
-      const payload = hours.map((h) => ({
-        weekday: h.weekday,
-        open_time: h.open_time || null,
-        close_time: h.close_time || null,
-      }));
+  function toggleDay(w) {
+    setHoursByDay((prev) => {
+      const cur = prev[w] || { open_time: "", close_time: "" };
+      const open = normalizeHHMM(cur.open_time);
+      const close = normalizeHHMM(cur.close_time);
+
+      // if currently open -> close it
+      if (open && close) {
+        return { ...prev, [w]: { open_time: "", close_time: "" } };
+      }
+
+      // if currently closed -> open with defaults if empty
+      return {
+        ...prev,
+        [w]: {
+          open_time: open || "10:00",
+          close_time: close || "18:00",
+        },
+      };
+    });
+  }
+
+  async function saveHours() {
+    try {
+      setHoursError("");
+      setHoursOk("");
+
+      const hours = [];
+      for (let w = 1; w <= 7; w++) {
+        const open_time = normalizeHHMM(hoursByDay[w]?.open_time);
+        const close_time = normalizeHHMM(hoursByDay[w]?.close_time);
+
+        if (!open_time || !close_time) {
+          hours.push({ weekday: w, open_time: "", close_time: "" });
+        } else {
+          hours.push({ weekday: w, open_time, close_time });
+        }
+      }
 
       const res = await fetch(`/api/s/${slug}/business-hours`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ hours: payload }),
+        body: JSON.stringify({ hours }),
       });
 
       const data = await res.json().catch(() => ({}));
       if (!res.ok || data?.error) {
-        setError(data?.error || "Technischer Fehler. Bitte erneut versuchen.");
+        setHoursError(data?.error || "Technischer Fehler. Bitte erneut versuchen.");
         return;
       }
 
-      await loadBusinessHours();
-      setOkMsg("Gespeichert.");
-    } catch (e) {
-      setError("Technischer Fehler. Bitte erneut versuchen.");
-    } finally {
-      setHoursSaving(false);
+      setHoursOk("Gespeichert.");
+      await loadHours();
+      await loadToday();
+    } catch {
+      setHoursError("Technischer Fehler. Bitte erneut versuchen.");
     }
   }
 
   if (!slug) return null;
-
-  // ✅ hour labels: show whole-hour marks within visible range
-  const firstHourMark = Math.ceil(displayStartMin / 60) * 60;
-  const lastHourMark = ceilHour(displayEndMin);
-  const hourLabelCount =
-    lastHourMark >= firstHourMark ? Math.floor((lastHourMark - firstHourMark) / 60) + 1 : 0;
-
-  // ✅ 15-min lines
-  const totalQuarterSegments = Math.floor((displayEndMin - displayStartMin) / 15);
-  const quarterLineCount = Math.max(0, totalQuarterSegments) + 1;
 
   return (
     <div style={UI.page}>
@@ -526,33 +503,24 @@ export default function Page({ params }) {
           </div>
 
           <div style={UI.controlsCard}>
-            <div style={UI.controlsRow}>
-              <select
-                value={serviceId}
-                onChange={(e) => setServiceId(e.target.value)}
-                style={{ ...UI.input, position: "relative", zIndex: 50 }}
-              >
+            <div style={UI.controlsGrid}>
+              <select value={serviceId} onChange={(e) => setServiceId(e.target.value)} style={UI.input}>
                 <option value="">Service wählen</option>
                 {services.map((s) => (
                   <option key={s.id} value={s.id}>
-                    {s.name}
+                    {s.name} — ({Number(s.duration_min || 0)} Min)
                   </option>
                 ))}
               </select>
 
-              <input
-                type="datetime-local"
-                value={start}
-                onChange={(e) => setStart(e.target.value)}
-                style={UI.input}
-              />
+              <input type="datetime-local" value={start} onChange={(e) => setStart(e.target.value)} style={UI.input} />
 
               <button onClick={createAppointment} style={UI.button}>
                 Create
               </button>
             </div>
 
-            <div style={UI.formRow2}>
+            <div style={UI.controlsGrid2}>
               <input
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
@@ -567,7 +535,7 @@ export default function Page({ params }) {
               />
             </div>
 
-            <div style={UI.formRow2b}>
+            <div style={UI.controlsGrid3}>
               <input
                 value={customerEmail}
                 onChange={(e) => setCustomerEmail(e.target.value)}
@@ -585,91 +553,111 @@ export default function Page({ params }) {
               </div>
             </div>
 
-            {okMsg && <div style={UI.ok}>{okMsg}</div>}
             {error && <div style={UI.error}>{error}</div>}
+            {okMsg && <div style={UI.ok}>{okMsg}</div>}
           </div>
 
           <div style={UI.grid}>
             <div style={UI.hourCol(timelineHeight)}>
-              {Array.from({ length: hourLabelCount }).map((_, i) => {
-                const minute = firstHourMark + i * 60;
-                const hour = Math.floor(minute / 60);
+              {ticks15.map((minute) => {
                 const top = (minute - displayStartMin) * PX_PER_MIN;
+                if (top < 0 || top > timelineHeight) return null;
+
+                const h = Math.floor(minute / 60);
+                const m = minute % 60;
+                const isHour = m === 0;
+
                 return (
-                  <div key={i} style={{ ...UI.hourLabel, top }}>
-                    {pad2(hour)}:00
+                  <div key={minute} style={{ ...UI.timeLabel(isHour), top }}>
+                    {pad2(h)}:{pad2(m)}
                   </div>
                 );
               })}
             </div>
 
             <div style={UI.canvas(timelineHeight)}>
-              {Array.from({ length: quarterLineCount }).map((_, i) => {
-                const minute = displayStartMin + i * 15;
-                const top = i * 15 * PX_PER_MIN;
-                const strong = minute % 60 === 0;
-                return <div key={i} style={UI.gridLine(top, strong)} />;
+              {ticks15.map((minute) => {
+                const top = (minute - displayStartMin) * PX_PER_MIN;
+                if (top < 0 || top > timelineHeight) return null;
+                const isHour = minute % 60 === 0;
+                return <div key={minute} style={UI.gridLine(top, isHour)} />;
               })}
 
-              {blocks.map((b) => (
-                <div key={b.id} style={UI.block(b.top, b.height)}>
-                  <div>
-                    <div style={UI.blockTime}>{b.startLabel}</div>
-                    <div style={UI.blockService}>{b.service_name || "Service"}</div>
-                    {b.customer_name ? <div style={UI.blockCustomer}>{b.customer_name}</div> : null}
-                    {b.meta ? <div style={UI.blockMeta}>{b.meta}</div> : null}
+              {blocks.map((b) => {
+                const phone = b.customer_phone ? `Tel: ${b.customer_phone}` : null;
+                const mail = b.customer_email ? `Mail: ${b.customer_email}` : null;
+                const note = b.internal_note ? `Notiz: ${b.internal_note}` : null;
+                const details = [phone, mail, note].filter(Boolean).join(" · ");
+
+                return (
+                  <div key={b.id} style={UI.block(b.top, b.height)}>
+                    <div>
+                      <div style={UI.blockTime}>{b.startLabel}</div>
+                      <div style={UI.blockService}>{b.service_name || "Service"}</div>
+                      {b.customer_name && <div style={UI.blockName}>{b.customer_name}</div>}
+                      {details && <div style={UI.blockDetails}>{details}</div>}
+                    </div>
+                    <div style={UI.blockStatus}>{b.status}</div>
                   </div>
-                  <div style={UI.blockStatus}>{b.status}</div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
-          <div style={UI.hoursTitle}>Öffnungszeiten (Mo–So)</div>
+          <div style={UI.sectionTitle}>Öffnungszeiten (Mo–So)</div>
           <div style={UI.hoursCard}>
             <table style={UI.hoursTable}>
               <thead>
                 <tr>
-                  <th style={UI.th}>Tag</th>
-                  <th style={UI.th}>Open</th>
-                  <th style={UI.th}>Close</th>
-                  <th style={UI.th}>Status</th>
+                  <th style={UI.hoursTh}>Tag</th>
+                  <th style={UI.hoursTh}>Open</th>
+                  <th style={UI.hoursTh}>Close</th>
+                  <th style={UI.hoursTh}>Status</th>
                 </tr>
               </thead>
               <tbody>
-                {hours.map((h) => {
-                  const open = Boolean(h.open_time && h.close_time);
+                {Array.from({ length: 7 }).map((_, idx) => {
+                  const w = idx + 1;
+                  const row = hoursByDay[w] || { open_time: "", close_time: "" };
+                  const open = isDayOpen(w);
+
                   return (
-                    <tr key={h.weekday}>
-                      <td style={UI.td}>{WEEKDAYS.find((w) => w.k === h.weekday)?.label}</td>
-                      <td style={UI.td}>
+                    <tr key={w}>
+                      <td style={{ ...UI.hoursTd, width: 80, color: "#E5E7EB", fontSize: 13, fontWeight: 800 }}>
+                        {weekdayLabelDe(w)}
+                      </td>
+                      <td style={UI.hoursTd}>
                         <input
                           type="time"
-                          value={h.open_time || ""}
-                          onChange={(e) => {
-                            const v = e.target.value;
-                            setHours((prev) =>
-                              prev.map((x) => (x.weekday === h.weekday ? { ...x, open_time: v } : x))
-                            );
-                          }}
-                          style={UI.time}
+                          value={row.open_time || ""}
+                          onChange={(e) =>
+                            setHoursByDay((prev) => ({
+                              ...prev,
+                              [w]: { ...prev[w], open_time: e.target.value },
+                            }))
+                          }
+                          style={UI.timeInput}
+                          disabled={!open}
                         />
                       </td>
-                      <td style={UI.td}>
+                      <td style={UI.hoursTd}>
                         <input
                           type="time"
-                          value={h.close_time || ""}
-                          onChange={(e) => {
-                            const v = e.target.value;
-                            setHours((prev) =>
-                              prev.map((x) => (x.weekday === h.weekday ? { ...x, close_time: v } : x))
-                            );
-                          }}
-                          style={UI.time}
+                          value={row.close_time || ""}
+                          onChange={(e) =>
+                            setHoursByDay((prev) => ({
+                              ...prev,
+                              [w]: { ...prev[w], close_time: e.target.value },
+                            }))
+                          }
+                          style={UI.timeInput}
+                          disabled={!open}
                         />
                       </td>
-                      <td style={UI.td}>
-                        <span style={UI.pill(open)}>{open ? "Open" : "Closed"}</span>
+                      <td style={UI.hoursTd}>
+                        <button onClick={() => toggleDay(w)} style={UI.statusPill(open)}>
+                          {open ? "Open" : "Closed"}
+                        </button>
                       </td>
                     </tr>
                   );
@@ -677,15 +665,17 @@ export default function Page({ params }) {
               </tbody>
             </table>
 
-            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}>
-              <button onClick={saveBusinessHours} style={UI.button} disabled={hoursSaving}>
-                {hoursSaving ? "Speichern..." : "Speichern"}
+            <div style={UI.hoursSaveRow}>
+              <button onClick={saveHours} style={UI.button}>
+                Speichern
               </button>
+              <div style={UI.small}>
+                Closed = leere Zeiten. Buchungen außerhalb werden serverseitig blockiert.
+              </div>
             </div>
 
-            <div style={UI.hint}>
-              Leere Zeiten = geschlossen. Buchungen außerhalb werden serverseitig blockiert.
-            </div>
+            {hoursError && <div style={UI.error}>{hoursError}</div>}
+            {hoursOk && <div style={UI.ok}>{hoursOk}</div>}
           </div>
         </div>
       </div>
