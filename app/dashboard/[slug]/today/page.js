@@ -8,7 +8,6 @@ function pad2(n) {
 }
 
 function toISOFromDatetimeLocal(v) {
-  // v like "2026-02-19T15:00"
   if (!v) return null;
   const d = new Date(v);
   if (isNaN(d.getTime())) return null;
@@ -21,33 +20,18 @@ function minutesFromISO(iso) {
   return d.getHours() * 60 + d.getMinutes();
 }
 
-function clamp(n, a, b) {
-  return Math.max(a, Math.min(b, n));
-}
-
-function weekdayLabelDe(weekday) {
-  // 1=Mon ... 7=Sun
-  const map = {
-    1: "Mo",
-    2: "Di",
-    3: "Mi",
-    4: "Do",
-    5: "Fr",
-    6: "Sa",
-    7: "So",
-  };
-  return map[weekday] || String(weekday);
-}
-
 function normalizeHHMM(v) {
   if (!v) return "";
   const s = String(v).slice(0, 5);
-  // expects "HH:MM"
   if (!/^\d{2}:\d{2}$/.test(s)) return "";
   return s;
 }
 
-// ====== UI THEME (Dark, calm, owner-tool) ======
+function weekdayLabelDe(weekday) {
+  const map = { 1: "Mo", 2: "Di", 3: "Mi", 4: "Do", 5: "Fr", 6: "Sa", 7: "So" };
+  return map[weekday] || String(weekday);
+}
+
 const UI = {
   page: {
     minHeight: "100vh",
@@ -58,6 +42,7 @@ const UI = {
       'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji"',
   },
   shell: { maxWidth: 1100, margin: "0 auto" },
+
   headerRow: {
     display: "flex",
     alignItems: "center",
@@ -84,12 +69,7 @@ const UI = {
     padding: 18,
   },
 
-  tabsRow: {
-    display: "flex",
-    gap: 10,
-    alignItems: "center",
-    marginBottom: 14,
-  },
+  tabsRow: { display: "flex", gap: 10, alignItems: "center", marginBottom: 14 },
   tab: (active) => ({
     display: "inline-flex",
     alignItems: "center",
@@ -115,27 +95,9 @@ const UI = {
     zIndex: 40,
     backdropFilter: "blur(6px)",
   },
-
-  controlsGrid: {
-    display: "grid",
-    gridTemplateColumns: "1.2fr 1fr auto",
-    gap: 10,
-    alignItems: "center",
-  },
-  controlsGrid2: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: 10,
-    alignItems: "center",
-    marginTop: 10,
-  },
-  controlsGrid3: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: 10,
-    alignItems: "start",
-    marginTop: 10,
-  },
+  controlsGrid: { display: "grid", gridTemplateColumns: "1.2fr 1fr auto", gap: 10, alignItems: "center" },
+  controlsGrid2: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 10 },
+  controlsGrid3: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, alignItems: "start", marginTop: 10 },
 
   input: {
     width: "100%",
@@ -192,17 +154,8 @@ const UI = {
     fontSize: 13,
   },
 
-  grid: {
-    display: "grid",
-    gridTemplateColumns: "88px 1fr",
-    gap: 12,
-    alignItems: "start",
-    marginTop: 12,
-  },
-
+  grid: { display: "grid", gridTemplateColumns: "88px 1fr", gap: 12, marginTop: 12, alignItems: "start" },
   hourCol: (h) => ({ position: "relative", height: h, userSelect: "none", zIndex: 1 }),
-
-  // label for every 15 minutes
   timeLabel: (isHour) => ({
     position: "absolute",
     fontSize: isHour ? 12 : 11,
@@ -221,7 +174,6 @@ const UI = {
     overflow: "hidden",
     zIndex: 1,
   }),
-
   gridLine: (top, isHour) => ({
     position: "absolute",
     left: 0,
@@ -246,8 +198,7 @@ const UI = {
     flexDirection: "column",
     justifyContent: "space-between",
   }),
-
-  blockTime: { fontWeight: 850, letterSpacing: "-0.01em", fontSize: 13, color: "#E5E7EB" },
+  blockTime: { fontWeight: 850, fontSize: 13, color: "#E5E7EB" },
   blockService: { fontSize: 13, color: "#CBD5E1", marginTop: 2 },
   blockName: { fontSize: 12, color: "#E5E7EB", fontWeight: 750, marginTop: 4 },
   blockDetails: { fontSize: 11, color: "#93A4BF", marginTop: 2, lineHeight: 1.25 },
@@ -264,7 +215,7 @@ const UI = {
   },
   hoursTable: { width: "100%", borderCollapse: "separate", borderSpacing: "0 10px" },
   hoursTh: { textAlign: "left", fontSize: 12, color: "#93A4BF", fontWeight: 700, paddingBottom: 6 },
-  hoursTd: { paddingRight: 10 },
+  hoursTd: { paddingRight: 10, verticalAlign: "middle" },
   timeInput: {
     width: 96,
     height: 34,
@@ -275,6 +226,17 @@ const UI = {
     color: "#E5E7EB",
     outline: "none",
   },
+  statusPill: (open) => ({
+    height: 30,
+    padding: "0 10px",
+    borderRadius: 999,
+    border: open ? "1px solid rgba(34, 197, 94, 0.35)" : "1px solid rgba(148, 163, 184, 0.25)",
+    background: open ? "rgba(34, 197, 94, 0.12)" : "rgba(15, 23, 42, 0.35)",
+    color: open ? "#86EFAC" : "rgba(203,213,225,0.7)",
+    fontSize: 12,
+    fontWeight: 800,
+    cursor: "pointer",
+  }),
   hoursSaveRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginTop: 10 },
   small: { fontSize: 12, color: "#93A4BF" },
 };
@@ -286,7 +248,6 @@ export default function Page({ params }) {
   const [serviceId, setServiceId] = useState("");
   const [start, setStart] = useState("");
 
-  // customer fields (Feature 2)
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
@@ -299,7 +260,6 @@ export default function Page({ params }) {
   const [displayStartMin, setDisplayStartMin] = useState(8 * 60);
   const [displayEndMin, setDisplayEndMin] = useState(21 * 60);
 
-  // business hours section
   const [hoursByDay, setHoursByDay] = useState(() => {
     const init = {};
     for (let w = 1; w <= 7; w++) init[w] = { open_time: "", close_time: "" };
@@ -308,7 +268,7 @@ export default function Page({ params }) {
   const [hoursError, setHoursError] = useState("");
   const [hoursOk, setHoursOk] = useState("");
 
-  const PX_PER_MIN = 2; // timeline scale (do not change logic)
+  const PX_PER_MIN = 2;
 
   const timelineHeight = useMemo(() => {
     return Math.max(300, (displayEndMin - displayStartMin) * PX_PER_MIN);
@@ -318,8 +278,7 @@ export default function Page({ params }) {
     if (!slug) return;
     const res = await fetch(`/api/s/${slug}/services`, { cache: "no-store" });
     const data = await res.json().catch(() => ({}));
-    const arr = Array.isArray(data.services) ? data.services : [];
-    setServices(arr);
+    setServices(Array.isArray(data.services) ? data.services : []);
   }
 
   async function loadToday() {
@@ -350,10 +309,7 @@ export default function Page({ params }) {
     for (const r of arr) {
       const w = Number(r.weekday);
       if (w >= 1 && w <= 7) {
-        next[w] = {
-          open_time: normalizeHHMM(r.open_time),
-          close_time: normalizeHHMM(r.close_time),
-        };
+        next[w] = { open_time: normalizeHHMM(r.open_time), close_time: normalizeHHMM(r.close_time) };
       }
     }
     setHoursByDay(next);
@@ -367,6 +323,14 @@ export default function Page({ params }) {
     loadHours();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
+
+  const ticks15 = useMemo(() => {
+    const start = Math.floor(displayStartMin / 15) * 15;
+    const end = Math.ceil(displayEndMin / 15) * 15;
+    const out = [];
+    for (let m = start; m <= end; m += 15) out.push(m);
+    return out;
+  }, [displayStartMin, displayEndMin]);
 
   const blocks = useMemo(() => {
     return (todayRows || [])
@@ -397,15 +361,6 @@ export default function Page({ params }) {
       .filter(Boolean)
       .filter((b) => b.top + b.height > 0 && b.top < timelineHeight);
   }, [todayRows, displayStartMin, timelineHeight]);
-
-  // 15-min ticks (DISPLAY ONLY) – no new logic
-  const ticks15 = useMemo(() => {
-    const start = Math.floor(displayStartMin / 15) * 15;
-    const end = Math.ceil(displayEndMin / 15) * 15;
-    const out = [];
-    for (let m = start; m <= end; m += 15) out.push(m);
-    return out;
-  }, [displayStartMin, displayEndMin]);
 
   async function createAppointment() {
     try {
@@ -454,9 +409,37 @@ export default function Page({ params }) {
 
       setOkMsg("Termin erstellt.");
       await loadToday();
-    } catch (e) {
+    } catch {
       setError("Technischer Fehler. Bitte erneut versuchen.");
     }
+  }
+
+  function isDayOpen(w) {
+    const o = normalizeHHMM(hoursByDay[w]?.open_time);
+    const c = normalizeHHMM(hoursByDay[w]?.close_time);
+    return !!(o && c);
+  }
+
+  function toggleDay(w) {
+    setHoursByDay((prev) => {
+      const cur = prev[w] || { open_time: "", close_time: "" };
+      const open = normalizeHHMM(cur.open_time);
+      const close = normalizeHHMM(cur.close_time);
+
+      // if currently open -> close it
+      if (open && close) {
+        return { ...prev, [w]: { open_time: "", close_time: "" } };
+      }
+
+      // if currently closed -> open with defaults if empty
+      return {
+        ...prev,
+        [w]: {
+          open_time: open || "10:00",
+          close_time: close || "18:00",
+        },
+      };
+    });
   }
 
   async function saveHours() {
@@ -464,13 +447,11 @@ export default function Page({ params }) {
       setHoursError("");
       setHoursOk("");
 
-      // always send hours[] (fix for “Missing hours[]”)
       const hours = [];
       for (let w = 1; w <= 7; w++) {
         const open_time = normalizeHHMM(hoursByDay[w]?.open_time);
         const close_time = normalizeHHMM(hoursByDay[w]?.close_time);
 
-        // closed if either missing
         if (!open_time || !close_time) {
           hours.push({ weekday: w, open_time: "", close_time: "" });
         } else {
@@ -492,8 +473,8 @@ export default function Page({ params }) {
 
       setHoursOk("Gespeichert.");
       await loadHours();
-      await loadToday(); // display_start_min might change based on hours
-    } catch (e) {
+      await loadToday();
+    } catch {
       setHoursError("Technischer Fehler. Bitte erneut versuchen.");
     }
   }
@@ -523,11 +504,7 @@ export default function Page({ params }) {
 
           <div style={UI.controlsCard}>
             <div style={UI.controlsGrid}>
-              <select
-                value={serviceId}
-                onChange={(e) => setServiceId(e.target.value)}
-                style={{ ...UI.input, position: "relative", zIndex: 50 }}
-              >
+              <select value={serviceId} onChange={(e) => setServiceId(e.target.value)} style={UI.input}>
                 <option value="">Service wählen</option>
                 {services.map((s) => (
                   <option key={s.id} value={s.id}>
@@ -581,7 +558,6 @@ export default function Page({ params }) {
           </div>
 
           <div style={UI.grid}>
-            {/* LEFT AXIS: every 15 minutes */}
             <div style={UI.hourCol(timelineHeight)}>
               {ticks15.map((minute) => {
                 const top = (minute - displayStartMin) * PX_PER_MIN;
@@ -590,6 +566,7 @@ export default function Page({ params }) {
                 const h = Math.floor(minute / 60);
                 const m = minute % 60;
                 const isHour = m === 0;
+
                 return (
                   <div key={minute} style={{ ...UI.timeLabel(isHour), top }}>
                     {pad2(h)}:{pad2(m)}
@@ -598,7 +575,6 @@ export default function Page({ params }) {
               })}
             </div>
 
-            {/* TIMELINE */}
             <div style={UI.canvas(timelineHeight)}>
               {ticks15.map((minute) => {
                 const top = (minute - displayStartMin) * PX_PER_MIN;
@@ -628,7 +604,6 @@ export default function Page({ params }) {
             </div>
           </div>
 
-          {/* BUSINESS HOURS */}
           <div style={UI.sectionTitle}>Öffnungszeiten (Mo–So)</div>
           <div style={UI.hoursCard}>
             <table style={UI.hoursTable}>
@@ -637,15 +612,18 @@ export default function Page({ params }) {
                   <th style={UI.hoursTh}>Tag</th>
                   <th style={UI.hoursTh}>Open</th>
                   <th style={UI.hoursTh}>Close</th>
+                  <th style={UI.hoursTh}>Status</th>
                 </tr>
               </thead>
               <tbody>
                 {Array.from({ length: 7 }).map((_, idx) => {
                   const w = idx + 1;
                   const row = hoursByDay[w] || { open_time: "", close_time: "" };
+                  const open = isDayOpen(w);
+
                   return (
                     <tr key={w}>
-                      <td style={{ ...UI.hoursTd, width: 80, color: "#E5E7EB", fontSize: 13, fontWeight: 700 }}>
+                      <td style={{ ...UI.hoursTd, width: 80, color: "#E5E7EB", fontSize: 13, fontWeight: 800 }}>
                         {weekdayLabelDe(w)}
                       </td>
                       <td style={UI.hoursTd}>
@@ -659,6 +637,7 @@ export default function Page({ params }) {
                             }))
                           }
                           style={UI.timeInput}
+                          disabled={!open}
                         />
                       </td>
                       <td style={UI.hoursTd}>
@@ -672,7 +651,13 @@ export default function Page({ params }) {
                             }))
                           }
                           style={UI.timeInput}
+                          disabled={!open}
                         />
+                      </td>
+                      <td style={UI.hoursTd}>
+                        <button onClick={() => toggleDay(w)} style={UI.statusPill(open)}>
+                          {open ? "Open" : "Closed"}
+                        </button>
                       </td>
                     </tr>
                   );
@@ -684,7 +669,9 @@ export default function Page({ params }) {
               <button onClick={saveHours} style={UI.button}>
                 Speichern
               </button>
-              <div style={UI.small}>Leere Zeiten = geschlossen. Buchungen außerhalb werden serverseitig blockiert.</div>
+              <div style={UI.small}>
+                Closed = leere Zeiten. Buchungen außerhalb werden serverseitig blockiert.
+              </div>
             </div>
 
             {hoursError && <div style={UI.error}>{hoursError}</div>}
