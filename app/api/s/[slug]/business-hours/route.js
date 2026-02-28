@@ -1,150 +1,175 @@
+import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
 
-function normalizeTime(t) {
-  // Accept "HH:MM" or "HH:MM:SS" -> return "HH:MM:SS"
-  if (!t || typeof t !== "string") return null;
-  const s = t.trim();
-  if (/^\d{2}:\d{2}:\d{2}$/.test(s)) return s;
-  if (/^\d{2}:\d{2}$/.test(s)) return `${s}:00`;
+function toHHMMSS(t) {
+  if (t == null) return null;
+  const s = String(t).trim();
+  if (!s) return null;
+
+  // accept "HH:MM" or "HH:MM:SS"
+  const m1 = /^(\d{2}):(\d{2})$/.exec(s);
+  if (m1) return `${m1[1]}:${m1[2]}:00`;
+
+  const m2 = /^(\d{2}):(\d{2}):(\d{2})$/.exec(s);
+  if (m2) return `${m2[1]}:${m2[2]}:${m2[3]}`;
+
   return null;
 }
 
-async function getSalonIdBySlug(slug) {
-  const r = await query(`select id from salons where slug = $1 limit 1`, [slug]);
-  return r.rows?.[0]?.id || null;
+function minutesFromHHMMSS(t) {
+  const m = /^(\d{2}):(\d{2}):(\d{2})$/.exec(t);
+  if (!m) return null;
+  const hh = Number(m[1]);
+  const mm = Number(m[2]);
+  if (hh < 0 || hh > 23) return null;
+  if (mm < 0 || mm > 59) return null;
+  return hh * 60 + mm;
 }
 
-export async function GET(_req, { params }) {
+async function getSalonIdBySlug(slug) {
+  const r = await query(
+    `select id from public.salons where slug = $1 limit 1`,
+    [slug]
+  );
+  return r?.rows?.[0]?.id || null;
+}
+
+export async function GET(req, { params }) {
   const slug = params?.slug;
-  if (!slug) return Response.json({ error: "Missing slug" }, { status: 400 });
 
   try {
+    if (!slug) return NextResponse.json({ error: "Missing slug" }, { status: 400 });
+
     const salonId = await getSalonIdBySlug(slug);
-    if (!salonId) return Response.json({ error: "Salon not found" }, { status: 404 });
+    if (!salonId) return NextResponse.json({ error: "Salon not found" }, { status: 404 });
 
     const r = await query(
-      `select weekday, open_time, close_time
-       from business_hours
-       where salon_id = $1
-       order by weekday asc`,
+      `
+      select weekday, open_time, close_time
+      from public.business_hours
+      where salon_id = $1
+      order by weekday asc
+      `,
       [salonId]
     );
 
-    return Response.json({
+    return NextResponse.json({
       slug,
       salon_id: salonId,
       rows: r.rows || [],
     });
-  } catch (e) {
+  } catch (error) {
     console.error("[API_ERROR]", {
       route: "/api/s/[slug]/business-hours",
       slug,
-      message: e?.message || String(e),
+      message: error?.message || String(error),
     });
-    return Response.json({ error: "Technischer Fehler. Bitte erneut versuchen." }, { status: 500 });
+    return NextResponse.json(
+      { error: "Technischer Fehler. Bitte erneut versuchen." },
+      { status: 500 }
+    );
   }
 }
 
 export async function POST(req, { params }) {
   const slug = params?.slug;
-  if (!slug) return Response.json({ error: "Missing slug" }, { status: 400 });
 
   try {
+    if (!slug) return NextResponse.json({ error: "Missing slug" }, { status: 400 });
+
     const salonId = await getSalonIdBySlug(slug);
-    if (!salonId) return Response.json({ error: "Salon not found" }, { status: 404 });
+    if (!salonId) return NextResponse.json({ error: "Salon not found" }, { status: 404 });
 
     const body = await req.json().catch(() => ({}));
-    const hours = Array.isArray(body?.hours)
-      ? body.hours
-      : Array.isArray(body?.rows)
-      ? body.rows
-      : null;
+    const hours = Array.isArray(body?.hours) ? body.hours : null;
 
-    if (!Array.isArray(hours)) {
-      return Response.json({ error: "Missing hours[]" }, { status: 400 });
+    if (!hours) {
+      return NextResponse.json({ error: "Missing hours[]" }, { status: 400 });
     }
 
-    // Expect entries shaped like:
-    // { weekday: 1..7, open_time: "10:00"|"10:00:00", close_time: "...", is_closed: true|false }
-    // If is_closed true -> delete that weekday row
-    // If open -> upsert open/close
-    const closedWeekdays = [];
-    const openEntries = [];
-
+    // normalize + dedupe by weekday (keep last)
+    const byDay = new Map();
     for (const h of hours) {
       const weekday = Number(h?.weekday);
-      if (!Number.isInteger(weekday) || weekday < 1 || weekday > 7) {
-        return Response.json({ error: "Invalid weekday (must be 1..7)" }, { status: 400 });
-      }
+      if (!Number.isInteger(weekday) || weekday < 1 || weekday > 7) continue;
 
-      const isClosed = Boolean(h?.is_closed);
+      const openN = toHHMMSS(h?.open_time);
+      const closeN = toHHMMSS(h?.close_time);
 
-      if (isClosed) {
-        closedWeekdays.push(weekday);
+      // CLOSED: allow both null/empty (delete row)
+      if (!openN && !closeN) {
+        byDay.set(weekday, { weekday, open_time: null, close_time: null });
         continue;
       }
 
-      const open = normalizeTime(h?.open_time);
-      const close = normalizeTime(h?.close_time);
-
-      if (!open || !close) {
-        return Response.json(
+      // OPEN: require both times valid
+      if (!openN || !closeN) {
+        return NextResponse.json(
           { error: `Invalid open/close time for weekday ${weekday}` },
           { status: 400 }
         );
       }
 
-      openEntries.push({ weekday, open, close });
+      const oMin = minutesFromHHMMSS(openN);
+      const cMin = minutesFromHHMMSS(closeN);
+
+      if (oMin == null || cMin == null || cMin <= oMin) {
+        return NextResponse.json(
+          { error: `Invalid open/close time for weekday ${weekday}` },
+          { status: 400 }
+        );
+      }
+
+      byDay.set(weekday, { weekday, open_time: openN, close_time: closeN });
     }
 
-    // transaction
+    // Apply changes in a transaction
     await query("begin");
 
-    // delete closed weekdays (if any)
-    if (closedWeekdays.length > 0) {
-      await query(
-        `delete from business_hours
-         where salon_id = $1 and weekday = any($2::int[])`,
-        [salonId, closedWeekdays]
-      );
-    }
-
-    // upsert open weekdays
-    for (const e of openEntries) {
-      await query(
-        `insert into business_hours (salon_id, weekday, open_time, close_time)
-         values ($1, $2, $3::time, $4::time)
-         on conflict (salon_id, weekday)
-         do update set open_time = excluded.open_time, close_time = excluded.close_time`,
-        [salonId, e.weekday, e.open, e.close]
-      );
-    }
-
-    await query("commit");
-
-    // return fresh rows
-    const r = await query(
-      `select weekday, open_time, close_time
-       from business_hours
-       where salon_id = $1
-       order by weekday asc`,
-      [salonId]
-    );
-
-    return Response.json({
-      slug,
-      salon_id: salonId,
-      rows: r.rows || [],
-    });
-  } catch (e) {
     try {
+      for (let weekday = 1; weekday <= 7; weekday++) {
+        const h = byDay.get(weekday);
+
+        // If not provided at all -> do nothing (safe)
+        if (!h) continue;
+
+        // Closed -> delete
+        if (!h.open_time && !h.close_time) {
+          await query(
+            `delete from public.business_hours where salon_id = $1 and weekday = $2`,
+            [salonId, weekday]
+          );
+          continue;
+        }
+
+        // Open -> upsert
+        await query(
+          `
+          insert into public.business_hours (salon_id, weekday, open_time, close_time)
+          values ($1, $2, $3, $4)
+          on conflict (salon_id, weekday)
+          do update set open_time = excluded.open_time, close_time = excluded.close_time
+          `,
+          [salonId, weekday, h.open_time, h.close_time]
+        );
+      }
+
+      await query("commit");
+    } catch (e) {
       await query("rollback");
-    } catch {}
+      throw e;
+    }
+
+    return NextResponse.json({ ok: true, slug, salon_id: salonId });
+  } catch (error) {
     console.error("[API_ERROR]", {
       route: "/api/s/[slug]/business-hours",
       slug,
-      message: e?.message || String(e),
+      message: error?.message || String(error),
     });
-    return Response.json({ error: "Technischer Fehler. Bitte erneut versuchen." }, { status: 500 });
+    return NextResponse.json(
+      { error: "Technischer Fehler. Bitte erneut versuchen." },
+      { status: 500 }
+    );
   }
 }
