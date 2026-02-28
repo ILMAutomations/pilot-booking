@@ -1,78 +1,156 @@
 import { NextResponse } from "next/server";
-import { query } from "@/lib/db";
+import { createClient } from "@supabase/supabase-js";
 
-export async function GET(req, { params }) {
-  const slug = params?.slug;
+function json(data, status = 200) {
+  return NextResponse.json(data, { status });
+}
 
+function normalizeTime(v) {
+  if (!v) return "";
+  const s = String(v).slice(0, 5);
+  if (!/^\d{2}:\d{2}$/.test(s)) return "";
+  return s;
+}
+
+function getSupabaseAdmin() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.SUPABASE_ANON_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!url || !key) {
+    throw new Error("Missing Supabase env (NEXT_PUBLIC_SUPABASE_URL / SERVICE_ROLE_KEY).");
+  }
+
+  return createClient(url, key, {
+    auth: { persistSession: false },
+  });
+}
+
+async function getSalonIdBySlug(supabase, slug) {
+  const { data, error } = await supabase
+    .from("salons")
+    .select("id, slug")
+    .eq("slug", slug)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data?.id) return null;
+  return data.id;
+}
+
+export async function GET(_req, { params }) {
   try {
-    if (!slug) return NextResponse.json({ error: "Missing slug" }, { status: 400 });
+    const slug = params?.slug;
+    if (!slug) return json({ error: "Missing slug" }, 400);
 
-    const salonRes = await query("select id from salons where slug=$1", [slug]);
-    if (!salonRes.rowCount) return NextResponse.json({ error: "Salon not found" }, { status: 404 });
-    const salon_id = salonRes.rows[0].id;
+    const supabase = getSupabaseAdmin();
+    const salon_id = await getSalonIdBySlug(supabase, slug);
+    if (!salon_id) return json({ error: "Salon not found" }, 404);
 
-    const { rows } = await query(
-      `select weekday, open_time, close_time
-       from business_hours
-       where salon_id=$1
-       order by weekday asc`,
-      [salon_id]
-    );
+    const { data, error } = await supabase
+      .from("business_hours")
+      .select("weekday, open_time, close_time")
+      .eq("salon_id", salon_id)
+      .order("weekday", { ascending: true });
 
-    return NextResponse.json({ slug, salon_id, rows });
-  } catch (error) {
-    console.error("[API_ERROR]", { route: "/api/s/[slug]/business-hours GET", slug, message: error?.message });
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    if (error) throw error;
+
+    return json({
+      slug,
+      salon_id,
+      hours: (data || []).map((r) => ({
+        weekday: Number(r.weekday),
+        open_time: normalizeTime(r.open_time),
+        close_time: normalizeTime(r.close_time),
+      })),
+    });
+  } catch (e) {
+    return json({ error: "Technischer Fehler. Bitte erneut versuchen." }, 500);
   }
 }
 
 export async function POST(req, { params }) {
-  const slug = params?.slug;
-
   try {
-    if (!slug) return NextResponse.json({ error: "Missing slug" }, { status: 400 });
+    const slug = params?.slug;
+    if (!slug) return json({ error: "Missing slug" }, 400);
 
-    const body = await req.json().catch(() => null);
+    const body = await req.json().catch(() => ({}));
     const hours = Array.isArray(body?.hours) ? body.hours : null;
 
-    if (!hours) {
-      return NextResponse.json({ error: "Missing hours[]" }, { status: 400 });
+    if (!hours || hours.length === 0) {
+      return json({ error: "Missing hours[]" }, 400);
     }
 
-    const salonRes = await query("select id from salons where slug=$1", [slug]);
-    if (!salonRes.rowCount) return NextResponse.json({ error: "Salon not found" }, { status: 404 });
-    const salon_id = salonRes.rows[0].id;
+    const supabase = getSupabaseAdmin();
+    const salon_id = await getSalonIdBySlug(supabase, slug);
+    if (!salon_id) return json({ error: "Salon not found" }, 404);
 
-    // validate + normalize
+    // sanitize rows (weekday 1-7, allow empty open/close to mark closed)
+    const rows = [];
     for (const h of hours) {
       const weekday = Number(h?.weekday);
-      const open_time = h?.open_time || null;
-      const close_time = h?.close_time || null;
-      const closed = !!h?.closed;
+      if (!(weekday >= 1 && weekday <= 7)) continue;
 
-      if (!Number.isInteger(weekday) || weekday < 1 || weekday > 7) {
-        return NextResponse.json({ error: "Invalid weekday (must be 1..7)" }, { status: 400 });
-      }
+      const open_time = normalizeTime(h?.open_time);
+      const close_time = normalizeTime(h?.close_time);
 
-      // If closed OR missing times => delete row (represents closed)
-      if (closed || !open_time || !close_time) {
-        await query("delete from business_hours where salon_id=$1 and weekday=$2", [salon_id, weekday]);
-        continue;
-      }
-
-      // Upsert (requires unique index salon_id+weekday, added via SQL Paste 1)
-      await query(
-        `insert into business_hours (salon_id, weekday, open_time, close_time)
-         values ($1,$2,$3,$4)
-         on conflict (salon_id, weekday)
-         do update set open_time=excluded.open_time, close_time=excluded.close_time`,
-        [salon_id, weekday, open_time, close_time]
-      );
+      rows.push({
+        salon_id,
+        weekday,
+        open_time: open_time || null,
+        close_time: close_time || null,
+      });
     }
 
-    return NextResponse.json({ ok: true });
-  } catch (error) {
-    console.error("[API_ERROR]", { route: "/api/s/[slug]/business-hours POST", slug, message: error?.message });
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    if (rows.length !== 7) {
+      // Force 7 rows always (Mo–So)
+      const byW = new Map(rows.map((r) => [r.weekday, r]));
+      const full = [];
+      for (let w = 1; w <= 7; w++) {
+        const r = byW.get(w);
+        full.push(
+          r || {
+            salon_id,
+            weekday: w,
+            open_time: null,
+            close_time: null,
+          }
+        );
+      }
+      rows.length = 0;
+      rows.push(...full);
+    }
+
+    // upsert (salon_id, weekday) must exist as unique constraint
+    const { error: upsertErr } = await supabase
+      .from("business_hours")
+      .upsert(rows, { onConflict: "salon_id,weekday" });
+
+    if (upsertErr) throw upsertErr;
+
+    // return fresh state (proof)
+    const { data, error } = await supabase
+      .from("business_hours")
+      .select("weekday, open_time, close_time")
+      .eq("salon_id", salon_id)
+      .order("weekday", { ascending: true });
+
+    if (error) throw error;
+
+    return json({
+      ok: true,
+      slug,
+      salon_id,
+      hours: (data || []).map((r) => ({
+        weekday: Number(r.weekday),
+        open_time: normalizeTime(r.open_time),
+        close_time: normalizeTime(r.close_time),
+      })),
+    });
+  } catch (e) {
+    return json({ error: "Technischer Fehler. Bitte erneut versuchen." }, 500);
   }
 }
