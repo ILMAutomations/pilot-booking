@@ -24,10 +24,13 @@ function clamp(n, a, b) {
   return Math.max(a, Math.min(b, n));
 }
 
-function floorHour(min) {
-  return Math.floor(min / 60) * 60;
+// ✅ 15-min grid helpers
+function floor15(min) {
+  return Math.floor(min / 15) * 15;
 }
-
+function ceil15(min) {
+  return Math.ceil(min / 15) * 15;
+}
 function ceilHour(min) {
   return Math.ceil(min / 60) * 60;
 }
@@ -207,7 +210,16 @@ const UI = {
     overflow: "hidden",
     zIndex: 1,
   }),
-  hourLine: (top) => ({ position: "absolute", left: 0, right: 0, top, height: 1, background: "rgba(255,255,255,0.08)" }),
+
+  // ✅ 15-min grid lines (hour lines a bit stronger)
+  gridLine: (top, strong) => ({
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top,
+    height: 1,
+    background: strong ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.05)",
+  }),
 
   block: (top, height) => ({
     position: "absolute",
@@ -315,13 +327,15 @@ export default function Page({ params }) {
       setTodayRows([]);
       return;
     }
+
     setTodayRows(Array.isArray(data.rows) ? data.rows : []);
 
+    // ✅ snap to 15-min grid (NO rounding to full hours)
     if (typeof data.display_start_min === "number") {
-      setDisplayStartMin(clamp(floorHour(data.display_start_min), 0, 24 * 60));
+      setDisplayStartMin(clamp(floor15(data.display_start_min), 0, 24 * 60));
     }
     if (typeof data.display_end_min === "number") {
-      setDisplayEndMin(clamp(ceilHour(data.display_end_min), 0, 24 * 60));
+      setDisplayEndMin(clamp(ceil15(data.display_end_min), 0, 24 * 60));
     }
   }
 
@@ -372,7 +386,6 @@ export default function Page({ params }) {
         if (r.customer_email) metaParts.push(`Mail: ${r.customer_email}`);
         if (r.internal_note) metaParts.push(`Notiz: ${r.internal_note}`);
 
-        // ✅ FINAL SAFETY: some rows might miss status; default to "confirmed"
         const statusLabel = (r.status ? String(r.status) : "confirmed").toLowerCase();
 
         return {
@@ -481,7 +494,15 @@ export default function Page({ params }) {
 
   if (!slug) return null;
 
-  const hourCount = Math.floor((displayEndMin - displayStartMin) / 60) + 1;
+  // ✅ hour labels: show whole-hour marks within visible range
+  const firstHourMark = Math.ceil(displayStartMin / 60) * 60;
+  const lastHourMark = ceilHour(displayEndMin);
+  const hourLabelCount =
+    lastHourMark >= firstHourMark ? Math.floor((lastHourMark - firstHourMark) / 60) + 1 : 0;
+
+  // ✅ 15-min lines
+  const totalQuarterSegments = Math.floor((displayEndMin - displayStartMin) / 15);
+  const quarterLineCount = Math.max(0, totalQuarterSegments) + 1;
 
   return (
     <div style={UI.page}>
@@ -570,8 +591,8 @@ export default function Page({ params }) {
 
           <div style={UI.grid}>
             <div style={UI.hourCol(timelineHeight)}>
-              {Array.from({ length: hourCount }).map((_, i) => {
-                const minute = displayStartMin + i * 60;
+              {Array.from({ length: hourLabelCount }).map((_, i) => {
+                const minute = firstHourMark + i * 60;
                 const hour = Math.floor(minute / 60);
                 const top = (minute - displayStartMin) * PX_PER_MIN;
                 return (
@@ -583,9 +604,11 @@ export default function Page({ params }) {
             </div>
 
             <div style={UI.canvas(timelineHeight)}>
-              {Array.from({ length: hourCount }).map((_, i) => {
-                const top = i * 60 * PX_PER_MIN;
-                return <div key={i} style={UI.hourLine(top)} />;
+              {Array.from({ length: quarterLineCount }).map((_, i) => {
+                const minute = displayStartMin + i * 15;
+                const top = i * 15 * PX_PER_MIN;
+                const strong = minute % 60 === 0;
+                return <div key={i} style={UI.gridLine(top, strong)} />;
               })}
 
               {blocks.map((b) => (
@@ -596,8 +619,6 @@ export default function Page({ params }) {
                     {b.customer_name ? <div style={UI.blockCustomer}>{b.customer_name}</div> : null}
                     {b.meta ? <div style={UI.blockMeta}>{b.meta}</div> : null}
                   </div>
-
-                  {/* ✅ ALWAYS render status (with fallback) */}
                   <div style={UI.blockStatus}>{b.status}</div>
                 </div>
               ))}
