@@ -8,6 +8,7 @@ function pad2(n) {
 }
 
 function toISOFromDatetimeLocal(v) {
+  // v like "2026-02-19T15:00"
   if (!v) return null;
   const d = new Date(v);
   if (isNaN(d.getTime())) return null;
@@ -20,30 +21,21 @@ function minutesFromISO(iso) {
   return d.getHours() * 60 + d.getMinutes();
 }
 
-function clamp(n, a, b) {
-  return Math.max(a, Math.min(b, n));
+function fmtTimeFromMin(min) {
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return `${pad2(h)}:${pad2(m)}`;
 }
 
-// ✅ 15-min grid helpers
-function floor15(min) {
-  return Math.floor(min / 15) * 15;
-}
-function ceil15(min) {
-  return Math.ceil(min / 15) * 15;
-}
-function ceilHour(min) {
-  return Math.ceil(min / 60) * 60;
-}
-
-const WEEKDAYS = [
-  { k: 1, label: "Mo" },
-  { k: 2, label: "Di" },
-  { k: 3, label: "Mi" },
-  { k: 4, label: "Do" },
-  { k: 5, label: "Fr" },
-  { k: 6, label: "Sa" },
-  { k: 7, label: "So" },
-];
+const WEEKDAY_LABELS = {
+  1: "Mo",
+  2: "Di",
+  3: "Mi",
+  4: "Do",
+  5: "Fr",
+  6: "Sa",
+  7: "So",
+};
 
 // ====== UI THEME (Dark, calm, owner-tool) ======
 const UI = {
@@ -56,6 +48,7 @@ const UI = {
       'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji"',
   },
   shell: { maxWidth: 1100, margin: "0 auto" },
+
   headerRow: {
     display: "flex",
     alignItems: "center",
@@ -114,20 +107,20 @@ const UI = {
     backdropFilter: "blur(6px)",
   },
 
-  controlsRow: {
+  // 3 rows: row1 (service + datetime + button), row2 (name + phone), row3 (email + note)
+  controlsRow1: {
     display: "grid",
     gridTemplateColumns: "1.2fr 1fr auto",
     gap: 10,
     alignItems: "center",
   },
-
-  formRow2: {
+  controlsRow2: {
     display: "grid",
     gridTemplateColumns: "1fr 1fr",
     gap: 10,
     marginTop: 10,
   },
-  formRow2b: {
+  controlsRow3: {
     display: "grid",
     gridTemplateColumns: "1fr 1fr",
     gap: 10,
@@ -147,7 +140,7 @@ const UI = {
   },
   textarea: {
     width: "100%",
-    minHeight: 92,
+    minHeight: 86,
     padding: "10px 12px",
     borderRadius: 12,
     border: "1px solid rgba(35, 48, 68, 0.9)",
@@ -156,8 +149,11 @@ const UI = {
     outline: "none",
     resize: "vertical",
   },
-  hint: { marginTop: 6, fontSize: 12, color: "#93A4BF" },
-
+  hint: {
+    marginTop: 6,
+    fontSize: 12,
+    color: "#93A4BF",
+  },
   button: {
     height: 40,
     padding: "0 16px",
@@ -168,17 +164,6 @@ const UI = {
     fontWeight: 600,
     cursor: "pointer",
     boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
-    whiteSpace: "nowrap",
-  },
-
-  ok: {
-    marginTop: 10,
-    padding: "10px 12px",
-    borderRadius: 12,
-    border: "1px solid rgba(34, 197, 94, 0.35)",
-    background: "rgba(20, 83, 45, 0.22)",
-    color: "#86EFAC",
-    fontSize: 13,
   },
 
   error: {
@@ -190,16 +175,35 @@ const UI = {
     color: "#FCA5A5",
     fontSize: 13,
   },
+  success: {
+    marginTop: 10,
+    padding: "10px 12px",
+    borderRadius: 12,
+    border: "1px solid rgba(34, 197, 94, 0.35)",
+    background: "rgba(20, 83, 45, 0.25)",
+    color: "#86EFAC",
+    fontSize: 13,
+  },
 
   grid: {
     display: "grid",
-    gridTemplateColumns: "88px 1fr",
+    gridTemplateColumns: "92px 1fr",
     gap: 12,
     alignItems: "start",
     marginTop: 12,
   },
   hourCol: (h) => ({ position: "relative", height: h, userSelect: "none", zIndex: 1 }),
-  hourLabel: { position: "absolute", fontSize: 12, color: "#93A4BF", transform: "translateY(-50%)" },
+
+  // 15-min labels
+  timeLabel: (isHour) => ({
+    position: "absolute",
+    transform: "translateY(-50%)",
+    fontSize: isHour ? 12 : 11,
+    fontWeight: isHour ? 800 : 600,
+    color: isHour ? "#E5E7EB" : "#93A4BF",
+    opacity: isHour ? 0.9 : 0.55,
+    lineHeight: 1,
+  }),
 
   canvas: (h) => ({
     position: "relative",
@@ -211,14 +215,22 @@ const UI = {
     zIndex: 1,
   }),
 
-  // ✅ 15-min grid lines (hour lines a bit stronger)
-  gridLine: (top, strong) => ({
+  // hour line + 15-min line
+  lineHour: (top) => ({
     position: "absolute",
     left: 0,
     right: 0,
     top,
     height: 1,
-    background: strong ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.05)",
+    background: "rgba(255,255,255,0.10)",
+  }),
+  lineQuarter: (top) => ({
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top,
+    height: 1,
+    background: "rgba(255,255,255,0.06)",
   }),
 
   block: (top, height) => ({
@@ -238,46 +250,46 @@ const UI = {
     overflow: "hidden",
   }),
   blockTime: { fontWeight: 800, letterSpacing: "-0.01em", fontSize: 13, color: "#E5E7EB" },
-  blockService: { fontSize: 13, color: "#CBD5E1", marginTop: 2 },
-  blockCustomer: { fontSize: 12, color: "#E5E7EB", marginTop: 2, fontWeight: 650 },
-  blockMeta: { fontSize: 12, color: "#93A4BF", marginTop: 4 },
-  blockStatus: { fontSize: 12, color: "#93A4BF" },
+  blockService: { fontSize: 13, color: "#CBD5E1" },
+  blockCustomer: { fontSize: 12, color: "#E5E7EB", opacity: 0.92, marginTop: 2 },
+  blockMeta: { fontSize: 11, color: "#93A4BF" },
 
-  hoursTitle: { marginTop: 22, marginBottom: 10, fontSize: 14, fontWeight: 800, color: "#E5E7EB" },
+  // Business Hours
   hoursCard: {
+    marginTop: 14,
     borderRadius: 16,
-    border: "1px solid rgba(35, 48, 68, 0.9)",
-    background: "rgba(2, 6, 23, 0.35)",
+    border: "1px solid rgba(255,255,255,0.06)",
+    background: "rgba(15, 23, 42, 0.45)",
     padding: 14,
-    marginTop: 10,
   },
+  hoursTitle: { fontSize: 13, fontWeight: 800, color: "#E5E7EB", marginBottom: 10 },
   hoursTable: { width: "100%", borderCollapse: "collapse" },
-  th: { textAlign: "left", fontSize: 12, color: "#93A4BF", fontWeight: 700, padding: "10px 8px" },
-  td: { padding: "10px 8px", borderTop: "1px solid rgba(255,255,255,0.06)" },
-  time: {
-    height: 34,
-    padding: "0 10px",
-    borderRadius: 10,
-    border: "1px solid rgba(35,48,68,0.9)",
-    background: "rgba(2,6,23,0.55)",
-    color: "#E5E7EB",
-    outline: "none",
-    width: 110,
-  },
-  pill: (open) => ({
+  th: { textAlign: "left", fontSize: 12, color: "#93A4BF", padding: "8px 6px" },
+  td: { padding: "8px 6px", borderTop: "1px solid rgba(255,255,255,0.06)" },
+  chipOpen: {
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    height: 28,
-    padding: "0 10px",
+    padding: "4px 10px",
     borderRadius: 999,
-    border: open ? "1px solid rgba(34,197,94,0.35)" : "1px solid rgba(148,163,184,0.20)",
-    background: open ? "rgba(20, 83, 45, 0.22)" : "rgba(15, 23, 42, 0.35)",
-    color: open ? "#86EFAC" : "#93A4BF",
     fontSize: 12,
     fontWeight: 700,
-    width: 80,
-  }),
+    border: "1px solid rgba(34, 197, 94, 0.25)",
+    background: "rgba(20, 83, 45, 0.25)",
+    color: "#86EFAC",
+  },
+  chipClosed: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "4px 10px",
+    borderRadius: 999,
+    fontSize: 12,
+    fontWeight: 700,
+    border: "1px solid rgba(148, 163, 184, 0.20)",
+    background: "rgba(2, 6, 23, 0.35)",
+    color: "#93A4BF",
+  },
 };
 
 export default function Page({ params }) {
@@ -293,18 +305,17 @@ export default function Page({ params }) {
   const [internalNote, setInternalNote] = useState("");
 
   const [error, setError] = useState("");
-  const [okMsg, setOkMsg] = useState("");
+  const [success, setSuccess] = useState("");
 
   const [todayRows, setTodayRows] = useState([]);
   const [displayStartMin, setDisplayStartMin] = useState(8 * 60);
   const [displayEndMin, setDisplayEndMin] = useState(21 * 60);
 
-  const [hours, setHours] = useState(() =>
-    WEEKDAYS.map((w) => ({ weekday: w.k, open_time: "", close_time: "" }))
-  );
+  const [hours, setHours] = useState([]); // [{weekday, open_time, close_time}]
   const [hoursSaving, setHoursSaving] = useState(false);
+  const [hoursMsg, setHoursMsg] = useState("");
 
-  const PX_PER_MIN = 2;
+  const PX_PER_MIN = 2; // DO NOT TOUCH (grid math uses this)
 
   const timelineHeight = useMemo(() => {
     return Math.max(300, (displayEndMin - displayStartMin) * PX_PER_MIN);
@@ -322,49 +333,31 @@ export default function Page({ params }) {
     if (!slug) return;
     const res = await fetch(`/api/s/${slug}/dashboard/today`, { cache: "no-store" });
     const data = await res.json().catch(() => ({}));
-    if (data?.error) {
-      setError(data.error);
+    if (!res.ok || data?.error) {
+      setError(data?.error || "Technischer Fehler. Bitte erneut versuchen.");
       setTodayRows([]);
       return;
     }
-
     setTodayRows(Array.isArray(data.rows) ? data.rows : []);
-
-    // ✅ snap to 15-min grid (NO rounding to full hours)
-    if (typeof data.display_start_min === "number") {
-      setDisplayStartMin(clamp(floor15(data.display_start_min), 0, 24 * 60));
-    }
-    if (typeof data.display_end_min === "number") {
-      setDisplayEndMin(clamp(ceil15(data.display_end_min), 0, 24 * 60));
-    }
+    if (typeof data.display_start_min === "number") setDisplayStartMin(data.display_start_min);
+    if (typeof data.display_end_min === "number") setDisplayEndMin(data.display_end_min);
   }
 
-  async function loadBusinessHours() {
+  async function loadHours() {
     if (!slug) return;
     const res = await fetch(`/api/s/${slug}/business-hours`, { cache: "no-store" });
     const data = await res.json().catch(() => ({}));
-    const rows = Array.isArray(data.rows) ? data.rows : Array.isArray(data) ? data : [];
-    const byDay = new Map();
-    for (const r of rows) {
-      if (r && typeof r.weekday === "number") byDay.set(r.weekday, r);
-    }
-    const next = WEEKDAYS.map((w) => {
-      const r = byDay.get(w.k);
-      return {
-        weekday: w.k,
-        open_time: r?.open_time || "",
-        close_time: r?.close_time || "",
-      };
-    });
-    setHours(next);
+    const arr = Array.isArray(data.hours) ? data.hours : Array.isArray(data.rows) ? data.rows : [];
+    setHours(arr);
   }
 
   useEffect(() => {
     setError("");
-    setOkMsg("");
+    setSuccess("");
+    setHoursMsg("");
     loadServices();
     loadToday();
-    loadBusinessHours();
+    loadHours();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
 
@@ -376,7 +369,7 @@ export default function Page({ params }) {
         if (startMin == null || endMin == null) return null;
 
         const top = (startMin - displayStartMin) * PX_PER_MIN;
-        const height = Math.max(44, (endMin - startMin) * PX_PER_MIN);
+        const height = Math.max(32, (endMin - startMin) * PX_PER_MIN);
 
         const st = new Date(r.start_at);
         const label = `${pad2(st.getHours())}:${pad2(st.getMinutes())}`;
@@ -386,8 +379,6 @@ export default function Page({ params }) {
         if (r.customer_email) metaParts.push(`Mail: ${r.customer_email}`);
         if (r.internal_note) metaParts.push(`Notiz: ${r.internal_note}`);
 
-        const statusLabel = (r.status ? String(r.status) : "confirmed").toLowerCase();
-
         return {
           id: r.id,
           top,
@@ -396,7 +387,7 @@ export default function Page({ params }) {
           service_name: r.service_name,
           customer_name: r.customer_name,
           meta: metaParts.join(" · "),
-          status: statusLabel,
+          status: r.status,
         };
       })
       .filter(Boolean)
@@ -406,18 +397,33 @@ export default function Page({ params }) {
   async function createAppointment() {
     try {
       setError("");
-      setOkMsg("");
+      setSuccess("");
 
-      if (!serviceId) return setError("Bitte Service auswählen.");
-      if (!start) return setError("Bitte Startzeit auswählen.");
-      if (!customerName.trim()) return setError("Bitte Kundennamen eingeben.");
+      if (!serviceId) {
+        setError("Bitte Service auswählen.");
+        return;
+      }
+      if (!start) {
+        setError("Bitte Startzeit auswählen.");
+        return;
+      }
+      if (!customerName.trim()) {
+        setError("Bitte Kundennamen eingeben.");
+        return;
+      }
 
       const svc = services.find((s) => s.id === serviceId);
       const duration = Number(svc?.duration_min || 0);
-      if (!duration || duration <= 0) return setError("Service-Dauer fehlt. Bitte kurz melden.");
+      if (!duration || duration <= 0) {
+        setError("Service-Dauer fehlt. Bitte kurz melden.");
+        return;
+      }
 
       const startISO = toISOFromDatetimeLocal(start);
-      if (!startISO) return setError("Ungültige Startzeit.");
+      if (!startISO) {
+        setError("Ungültige Startzeit.");
+        return;
+      }
 
       const startDate = new Date(startISO);
       const endDate = new Date(startDate.getTime() + duration * 60 * 1000);
@@ -431,42 +437,53 @@ export default function Page({ params }) {
           start_at: startISO,
           end_at: endISO,
           customer_name: customerName.trim(),
-          customer_phone: customerPhone.trim() || null,
-          customer_email: customerEmail.trim() || null,
+          phone: customerPhone.trim() || null,
+          email: customerEmail.trim() || null,
           internal_note: internalNote.trim() || null,
         }),
       });
 
       const data = await res.json().catch(() => ({}));
 
-      if (res.status === 409) return setError("Zeit ist bereits belegt. Bitte andere Uhrzeit wählen.");
+      if (res.status === 409) {
+        setError("Zeit ist bereits belegt. Bitte andere Uhrzeit wählen.");
+        return;
+      }
 
       if (!res.ok) {
         if (data?.code === "OUTSIDE_HOURS") {
-          return setError("Außerhalb der Öffnungszeiten. Bitte andere Uhrzeit wählen.");
+          setError("Außerhalb der Öffnungszeiten. Bitte andere Uhrzeit wählen.");
+          return;
         }
         if (String(data?.error || "").includes("no_overlapping_appointments")) {
-          return setError("Zeit ist bereits belegt. Bitte andere Uhrzeit wählen.");
+          setError("Zeit ist bereits belegt. Bitte andere Uhrzeit wählen.");
+          return;
         }
-        return setError(data?.error || "Technischer Fehler. Bitte erneut versuchen.");
+        setError(data?.error || "Technischer Fehler. Bitte erneut versuchen.");
+        return;
       }
 
+      setSuccess("Termin erstellt.");
       await loadToday();
-      setOkMsg("Termin erstellt.");
     } catch (e) {
       setError("Technischer Fehler. Bitte erneut versuchen.");
     }
   }
 
-  async function saveBusinessHours() {
+  async function saveHours() {
     try {
-      if (!slug) return;
+      setHoursMsg("");
       setError("");
-      setOkMsg("");
+      setSuccess("");
       setHoursSaving(true);
 
+      if (!Array.isArray(hours) || hours.length < 7) {
+        setHoursMsg("Missing hours[].");
+        return;
+      }
+
       const payload = hours.map((h) => ({
-        weekday: h.weekday,
+        weekday: Number(h.weekday),
         open_time: h.open_time || null,
         close_time: h.close_time || null,
       }));
@@ -479,30 +496,48 @@ export default function Page({ params }) {
 
       const data = await res.json().catch(() => ({}));
       if (!res.ok || data?.error) {
-        setError(data?.error || "Technischer Fehler. Bitte erneut versuchen.");
+        setHoursMsg(data?.error || "Server Error");
         return;
       }
 
-      await loadBusinessHours();
-      setOkMsg("Gespeichert.");
+      setHoursMsg("Gespeichert.");
+      await loadHours();
     } catch (e) {
-      setError("Technischer Fehler. Bitte erneut versuchen.");
+      setHoursMsg("Server Error");
     } finally {
       setHoursSaving(false);
     }
   }
 
+  const timeLabels = useMemo(() => {
+    // Show every 15 minutes between displayStartMin and displayEndMin (inclusive)
+    const labels = [];
+    const startMin = Math.floor(displayStartMin / 15) * 15;
+    const endMin = Math.ceil(displayEndMin / 15) * 15;
+
+    for (let m = startMin; m <= endMin; m += 15) {
+      const isHour = m % 60 === 0;
+      const top = (m - displayStartMin) * PX_PER_MIN;
+      labels.push({ key: m, top, text: fmtTimeFromMin(m), isHour });
+    }
+    return labels;
+  }, [displayStartMin, displayEndMin]);
+
+  const gridLines = useMemo(() => {
+    // 15-min lines across the canvas
+    const lines = [];
+    const startMin = Math.floor(displayStartMin / 15) * 15;
+    const endMin = Math.ceil(displayEndMin / 15) * 15;
+
+    for (let m = startMin; m <= endMin; m += 15) {
+      const top = (m - displayStartMin) * PX_PER_MIN;
+      const isHour = m % 60 === 0;
+      lines.push({ key: m, top, isHour });
+    }
+    return lines;
+  }, [displayStartMin, displayEndMin]);
+
   if (!slug) return null;
-
-  // ✅ hour labels: show whole-hour marks within visible range
-  const firstHourMark = Math.ceil(displayStartMin / 60) * 60;
-  const lastHourMark = ceilHour(displayEndMin);
-  const hourLabelCount =
-    lastHourMark >= firstHourMark ? Math.floor((lastHourMark - firstHourMark) / 60) + 1 : 0;
-
-  // ✅ 15-min lines
-  const totalQuarterSegments = Math.floor((displayEndMin - displayStartMin) / 15);
-  const quarterLineCount = Math.max(0, totalQuarterSegments) + 1;
 
   return (
     <div style={UI.page}>
@@ -526,7 +561,7 @@ export default function Page({ params }) {
           </div>
 
           <div style={UI.controlsCard}>
-            <div style={UI.controlsRow}>
+            <div style={UI.controlsRow1}>
               <select
                 value={serviceId}
                 onChange={(e) => setServiceId(e.target.value)}
@@ -535,7 +570,7 @@ export default function Page({ params }) {
                 <option value="">Service wählen</option>
                 {services.map((s) => (
                   <option key={s.id} value={s.id}>
-                    {s.name}
+                    {s.name} – ({Number(s.duration_min || 0)} Min)
                   </option>
                 ))}
               </select>
@@ -552,7 +587,7 @@ export default function Page({ params }) {
               </button>
             </div>
 
-            <div style={UI.formRow2}>
+            <div style={UI.controlsRow2}>
               <input
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
@@ -567,7 +602,7 @@ export default function Page({ params }) {
               />
             </div>
 
-            <div style={UI.formRow2b}>
+            <div style={UI.controlsRow3}>
               <input
                 value={customerEmail}
                 onChange={(e) => setCustomerEmail(e.target.value)}
@@ -585,48 +620,41 @@ export default function Page({ params }) {
               </div>
             </div>
 
-            {okMsg && <div style={UI.ok}>{okMsg}</div>}
             {error && <div style={UI.error}>{error}</div>}
+            {success && <div style={UI.success}>{success}</div>}
           </div>
 
           <div style={UI.grid}>
             <div style={UI.hourCol(timelineHeight)}>
-              {Array.from({ length: hourLabelCount }).map((_, i) => {
-                const minute = firstHourMark + i * 60;
-                const hour = Math.floor(minute / 60);
-                const top = (minute - displayStartMin) * PX_PER_MIN;
-                return (
-                  <div key={i} style={{ ...UI.hourLabel, top }}>
-                    {pad2(hour)}:00
-                  </div>
-                );
-              })}
+              {timeLabels.map((t) => (
+                <div key={t.key} style={{ ...UI.timeLabel(t.isHour), top: t.top }}>
+                  {t.text}
+                </div>
+              ))}
             </div>
 
             <div style={UI.canvas(timelineHeight)}>
-              {Array.from({ length: quarterLineCount }).map((_, i) => {
-                const minute = displayStartMin + i * 15;
-                const top = i * 15 * PX_PER_MIN;
-                const strong = minute % 60 === 0;
-                return <div key={i} style={UI.gridLine(top, strong)} />;
-              })}
+              {gridLines.map((l) => (
+                <div key={l.key} style={l.isHour ? UI.lineHour(l.top) : UI.lineQuarter(l.top)} />
+              ))}
 
               {blocks.map((b) => (
                 <div key={b.id} style={UI.block(b.top, b.height)}>
                   <div>
                     <div style={UI.blockTime}>{b.startLabel}</div>
                     <div style={UI.blockService}>{b.service_name || "Service"}</div>
-                    {b.customer_name ? <div style={UI.blockCustomer}>{b.customer_name}</div> : null}
-                    {b.meta ? <div style={UI.blockMeta}>{b.meta}</div> : null}
+                    {b.customer_name && <div style={UI.blockCustomer}>{b.customer_name}</div>}
+                    {b.meta && <div style={UI.blockMeta}>{b.meta}</div>}
                   </div>
-                  <div style={UI.blockStatus}>{b.status}</div>
+                  {b.status && <div style={UI.blockMeta}>{b.status}</div>}
                 </div>
               ))}
             </div>
           </div>
 
-          <div style={UI.hoursTitle}>Öffnungszeiten (Mo–So)</div>
           <div style={UI.hoursCard}>
+            <div style={UI.hoursTitle}>Öffnungszeiten (Mo–So)</div>
+
             <table style={UI.hoursTable}>
               <thead>
                 <tr>
@@ -637,55 +665,61 @@ export default function Page({ params }) {
                 </tr>
               </thead>
               <tbody>
-                {hours.map((h) => {
-                  const open = Boolean(h.open_time && h.close_time);
-                  return (
-                    <tr key={h.weekday}>
-                      <td style={UI.td}>{WEEKDAYS.find((w) => w.k === h.weekday)?.label}</td>
-                      <td style={UI.td}>
-                        <input
-                          type="time"
-                          value={h.open_time || ""}
-                          onChange={(e) => {
-                            const v = e.target.value;
-                            setHours((prev) =>
-                              prev.map((x) => (x.weekday === h.weekday ? { ...x, open_time: v } : x))
-                            );
-                          }}
-                          style={UI.time}
-                        />
-                      </td>
-                      <td style={UI.td}>
-                        <input
-                          type="time"
-                          value={h.close_time || ""}
-                          onChange={(e) => {
-                            const v = e.target.value;
-                            setHours((prev) =>
-                              prev.map((x) => (x.weekday === h.weekday ? { ...x, close_time: v } : x))
-                            );
-                          }}
-                          style={UI.time}
-                        />
-                      </td>
-                      <td style={UI.td}>
-                        <span style={UI.pill(open)}>{open ? "Open" : "Closed"}</span>
-                      </td>
-                    </tr>
-                  );
-                })}
+                {(hours || [])
+                  .slice()
+                  .sort((a, b) => Number(a.weekday) - Number(b.weekday))
+                  .map((h) => {
+                    const isOpen = Boolean(h.open_time && h.close_time);
+                    return (
+                      <tr key={h.weekday}>
+                        <td style={UI.td}>{WEEKDAY_LABELS[Number(h.weekday)] || h.weekday}</td>
+                        <td style={UI.td}>
+                          <input
+                            type="time"
+                            value={h.open_time || ""}
+                            onChange={(e) => {
+                              const v = e.target.value || null;
+                              setHours((prev) =>
+                                prev.map((x) => (x.weekday === h.weekday ? { ...x, open_time: v } : x))
+                              );
+                            }}
+                            style={{ ...UI.input, height: 34 }}
+                          />
+                        </td>
+                        <td style={UI.td}>
+                          <input
+                            type="time"
+                            value={h.close_time || ""}
+                            onChange={(e) => {
+                              const v = e.target.value || null;
+                              setHours((prev) =>
+                                prev.map((x) =>
+                                  x.weekday === h.weekday ? { ...x, close_time: v } : x
+                                )
+                              );
+                            }}
+                            style={{ ...UI.input, height: 34 }}
+                          />
+                        </td>
+                        <td style={UI.td}>
+                          {isOpen ? <span style={UI.chipOpen}>Open</span> : <span style={UI.chipClosed}>Closed</span>}
+                        </td>
+                      </tr>
+                    );
+                  })}
               </tbody>
             </table>
 
-            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}>
-              <button onClick={saveBusinessHours} style={UI.button} disabled={hoursSaving}>
+            <div style={{ marginTop: 12, display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center" }}>
+              <button onClick={saveHours} style={UI.button} disabled={hoursSaving}>
                 {hoursSaving ? "Speichern..." : "Speichern"}
               </button>
+              <div style={UI.hint}>
+                Leere Zeiten = geschlossen. Buchungen außerhalb werden serverseitig blockiert.
+              </div>
             </div>
 
-            <div style={UI.hint}>
-              Leere Zeiten = geschlossen. Buchungen außerhalb werden serverseitig blockiert.
-            </div>
+            {hoursMsg && <div style={{ ...UI.success, marginTop: 10 }}>{hoursMsg}</div>}
           </div>
         </div>
       </div>
