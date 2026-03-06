@@ -30,30 +30,6 @@ function minToTime(m) {
   return `${hh}:${mm}`;
 }
 
-// timezone helper
-function getLocalParts(date, timeZone) {
-  const fmt = new Intl.DateTimeFormat("en-CA", {
-    timeZone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    weekday: "short",
-  });
-
-  const parts = fmt.formatToParts(date);
-  const map = {};
-  for (const p of parts) map[p.type] = p.value;
-
-  const wdMap = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 };
-
-  return {
-    weekday: wdMap[map.weekday] ?? null,
-    y: Number(map.year),
-    m: Number(map.month),
-    d: Number(map.day),
-  };
-}
-
 // ---------- DB helpers ----------
 
 async function getSalonBySlug(slug) {
@@ -105,6 +81,7 @@ async function getAppointmentsForDay(salon_id, date) {
 
 export async function GET(req, { params }) {
   try {
+
     const slug = params?.slug;
     if (!slug) return bad("Ungültiger Salon.");
 
@@ -132,15 +109,23 @@ export async function GET(req, { params }) {
       return bad("Service Dauer ungültig.");
     }
 
-    const tz = salon.timezone || "Europe/Berlin";
+    const weekday = new Date(date).getDay();
 
-    const baseDate = new Date(`${date}T12:00:00Z`);
-    const parts = getLocalParts(baseDate, tz);
+    const weekdayMap = {
+      0: 7,
+      1: 1,
+      2: 2,
+      3: 3,
+      4: 4,
+      5: 5,
+      6: 6
+    };
 
-    const weekday = parts.weekday;
-    if (!weekday) return json({ slots: [] });
+    const bh = await getBusinessHoursForWeekday(
+      salon.id,
+      weekdayMap[weekday]
+    );
 
-    const bh = await getBusinessHoursForWeekday(salon.id, weekday);
     if (!bh?.open_time || !bh?.close_time) {
       return json({ slots: [] });
     }
@@ -154,35 +139,24 @@ export async function GET(req, { params }) {
 
     const appointments = await getAppointmentsForDay(salon.id, date);
 
-    // convert appointments to minutes
+    // convert appointments into minutes
     const appts = appointments.map(a => {
 
       const start = new Date(a.start_at);
       const end = new Date(a.end_at);
 
-      const startLocal = new Intl.DateTimeFormat("en-GB", {
-        timeZone: tz,
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      }).format(start);
-
-      const endLocal = new Intl.DateTimeFormat("en-GB", {
-        timeZone: tz,
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      }).format(end);
+      const startMin = start.getHours() * 60 + start.getMinutes();
+      const endMin = end.getHours() * 60 + end.getMinutes();
 
       return {
-        start: timeToMin(startLocal),
-        end: timeToMin(endLocal),
+        start: startMin,
+        end: endMin
       };
+
     });
 
     const slots = [];
 
-    // generate slots in 15 min grid
     for (let m = openMin; m + duration <= closeMin; m += 15) {
 
       const slotStart = m;
