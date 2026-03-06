@@ -1,149 +1,217 @@
-import { createClient } from "@supabase/supabase-js";
+import { NextResponse } from "next/server";
+import { query } from "@/lib/db";
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
-
-function addMinutes(date, minutes) {
-  return new Date(date.getTime() + minutes * 60000);
+// ---------- helpers ----------
+function json(data, status = 200) {
+  return NextResponse.json(data, { status });
 }
 
-export async function GET(req, { params }) {
+function bad(msg) {
+  return json({ error: msg || "Technischer Fehler." }, 400);
+}
 
-  const slug = params.slug;
+function isUuid(v) {
+  return typeof v === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
+}
 
-  const { searchParams } = new URL(req.url);
+function timeToMin(t) {
+  if (!t) return null;
+  const [hh, mm] = String(t).split(":");
+  const H = Number(hh);
+  const M = Number(mm);
+  if (!Number.isFinite(H) || !Number.isFinite(M)) return null;
+  return H * 60 + M;
+}
 
-  const serviceId = searchParams.get("service_id");
-  const date = searchParams.get("date");
+function minToTime(m) {
+  const hh = String(Math.floor(m / 60)).padStart(2, "0");
+  const mm = String(m % 60).padStart(2, "0");
+  return `${hh}:${mm}`;
+}
 
-  if (!serviceId || !date) {
-    return Response.json({ error: "Missing parameters" }, { status: 400 });
-  }
+// timezone helper
+function getLocalParts(date, timeZone) {
+  const fmt = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    weekday: "short",
+  });
 
-  // --------------------------------------------------
-  // 1 Salon
-  // --------------------------------------------------
+  const parts = fmt.formatToParts(date);
+  const map = {};
+  for (const p of parts) map[p.type] = p.value;
 
-  const { data: salon } = await supabase
-    .from("salons")
-    .select("id")
-    .eq("slug", slug)
-    .single();
+  const wdMap = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 };
 
-  if (!salon) {
-    return Response.json({ error: "Salon not found" }, { status: 404 });
-  }
-
-  const salonId = salon.id;
-
-  // --------------------------------------------------
-  // 2 Service duration
-  // --------------------------------------------------
-
-  const { data: service } = await supabase
-    .from("services")
-    .select("duration_min")
-    .eq("id", serviceId)
-    .single();
-
-  if (!service) {
-    return Response.json({ error: "Service not found" }, { status: 404 });
-  }
-
-  const duration = service.duration_min;
-
-  // --------------------------------------------------
-  // 3 Business Hours
-  // --------------------------------------------------
-
-  const weekday = new Date(date).getDay();
-
-  const weekdayMap = {
-    0: 7,
-    1: 1,
-    2: 2,
-    3: 3,
-    4: 4,
-    5: 5,
-    6: 6
+  return {
+    weekday: wdMap[map.weekday] ?? null,
+    y: Number(map.year),
+    m: Number(map.month),
+    d: Number(map.day),
   };
+}
 
-  const weekdayDb = weekdayMap[weekday];
+// ---------- DB helpers ----------
 
-  const { data: hours } = await supabase
-    .from("business_hours")
-    .select("open_time, close_time")
-    .eq("salon_id", salonId)
-    .eq("weekday", weekdayDb)
-    .single();
+async function getSalonBySlug(slug) {
+  const r = await query(
+    `select id, timezone
+     from public.salons
+     where slug = $1
+     limit 1`,
+    [slug]
+  );
+  return r.rows?.[0] || null;
+}
 
-  if (!hours || !hours.open_time || !hours.close_time) {
-    return Response.json({ slots: [] });
-  }
+async function getServiceForSalon(salon_id, service_id) {
+  const r = await query(
+    `select duration_min
+     from public.services
+     where salon_id = $1 and id = $2
+     limit 1`,
+    [salon_id, service_id]
+  );
+  return r.rows?.[0] || null;
+}
 
-  const open = `${date}T${hours.open_time}`;
-  const close = `${date}T${hours.close_time}`;
+async function getBusinessHoursForWeekday(salon_id, weekday) {
+  const r = await query(
+    `select open_time, close_time
+     from public.business_hours
+     where salon_id = $1 and weekday = $2
+     limit 1`,
+    [salon_id, weekday]
+  );
+  return r.rows?.[0] || null;
+}
 
-  // --------------------------------------------------
-  // 4 Existing appointments
-  // --------------------------------------------------
+async function getAppointmentsForDay(salon_id, date) {
+  const r = await query(
+    `select start_at, end_at
+     from public.appointments
+     where salon_id = $1
+     and date(start_at) = $2
+     and (status is null or status <> 'cancelled')`,
+    [salon_id, date]
+  );
+  return r.rows || [];
+}
 
-  const { data: appointments } = await supabase
-    .from("appointments")
-    .select("start_at, end_at")
-    .eq("salon_id", salonId)
-    .gte("start_at", `${date}T00:00:00`)
-    .lt("start_at", `${date}T23:59:59`)
-    .neq("status", "cancelled");
+// ---------- GET availability ----------
 
-  const appts = appointments || [];
+export async function GET(req, { params }) {
+  try {
+    const slug = params?.slug;
+    if (!slug) return bad("Ungültiger Salon.");
 
-  // --------------------------------------------------
-  // 5 Generate slots
-  // --------------------------------------------------
+    const url = new URL(req.url);
 
-  const slots = [];
+    const service_id = url.searchParams.get("service_id");
+    const date = url.searchParams.get("date");
 
-  let cursor = new Date(open);
-  const end = new Date(close);
+    if (!service_id || !date) {
+      return bad("service_id und date erforderlich.");
+    }
 
-  while (cursor < end) {
+    if (!isUuid(service_id)) {
+      return bad("Ungültige Service ID.");
+    }
 
-    const slotStart = new Date(cursor);
-    const slotEnd = addMinutes(slotStart, duration);
+    const salon = await getSalonBySlug(slug);
+    if (!salon) return bad("Salon nicht gefunden.");
 
-    if (slotEnd > end) break;
+    const service = await getServiceForSalon(salon.id, service_id);
+    if (!service) return bad("Service nicht gefunden.");
 
-    // --------------------------------------------------
-    // overlap check
-    // --------------------------------------------------
+    const duration = Number(service.duration_min);
+    if (!duration || duration <= 0) {
+      return bad("Service Dauer ungültig.");
+    }
 
-    const overlap = appts.some(appt => {
+    const tz = salon.timezone || "Europe/Berlin";
 
-      const apptStart = new Date(appt.start_at);
-      const apptEnd = new Date(appt.end_at);
+    const baseDate = new Date(`${date}T12:00:00Z`);
+    const parts = getLocalParts(baseDate, tz);
 
-      return (
-        slotStart < apptEnd &&
-        slotEnd > apptStart
-      );
+    const weekday = parts.weekday;
+    if (!weekday) return json({ slots: [] });
 
+    const bh = await getBusinessHoursForWeekday(salon.id, weekday);
+    if (!bh?.open_time || !bh?.close_time) {
+      return json({ slots: [] });
+    }
+
+    const openMin = timeToMin(bh.open_time);
+    const closeMin = timeToMin(bh.close_time);
+
+    if (openMin == null || closeMin == null) {
+      return json({ slots: [] });
+    }
+
+    const appointments = await getAppointmentsForDay(salon.id, date);
+
+    // convert appointments to minutes
+    const appts = appointments.map(a => {
+
+      const start = new Date(a.start_at);
+      const end = new Date(a.end_at);
+
+      const startLocal = new Intl.DateTimeFormat("en-GB", {
+        timeZone: tz,
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      }).format(start);
+
+      const endLocal = new Intl.DateTimeFormat("en-GB", {
+        timeZone: tz,
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      }).format(end);
+
+      return {
+        start: timeToMin(startLocal),
+        end: timeToMin(endLocal),
+      };
     });
 
-    if (!overlap) {
+    const slots = [];
 
-      slots.push(
-        slotStart.toTimeString().slice(0,5)
-      );
+    // generate slots in 15 min grid
+    for (let m = openMin; m + duration <= closeMin; m += 15) {
+
+      const slotStart = m;
+      const slotEnd = m + duration;
+
+      let overlap = false;
+
+      for (const a of appts) {
+
+        if (slotStart < a.end && slotEnd > a.start) {
+          overlap = true;
+          break;
+        }
+
+      }
+
+      if (!overlap) {
+        slots.push(minToTime(slotStart));
+      }
 
     }
 
-    cursor = addMinutes(cursor, 15);
-  }
+    return json({ slots });
 
-  return Response.json({
-    slots
-  });
+  } catch (e) {
+
+    console.error(e);
+
+    return json({ error: "Technischer Fehler." }, 500);
+
+  }
 }
