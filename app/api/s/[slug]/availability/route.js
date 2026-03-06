@@ -18,10 +18,7 @@ function isUuid(v) {
 function timeToMin(t) {
   if (!t) return null;
   const [hh, mm] = String(t).split(":");
-  const H = Number(hh);
-  const M = Number(mm);
-  if (!Number.isFinite(H) || !Number.isFinite(M)) return null;
-  return H * 60 + M;
+  return Number(hh) * 60 + Number(mm);
 }
 
 function minToTime(m) {
@@ -80,6 +77,7 @@ async function getAppointmentsForDay(salon_id, date) {
 // ---------- GET availability ----------
 
 export async function GET(req, { params }) {
+
   try {
 
     const slug = params?.slug;
@@ -101,13 +99,12 @@ export async function GET(req, { params }) {
     const salon = await getSalonBySlug(slug);
     if (!salon) return bad("Salon nicht gefunden.");
 
+    const tz = salon.timezone || "Europe/Berlin";
+
     const service = await getServiceForSalon(salon.id, service_id);
     if (!service) return bad("Service nicht gefunden.");
 
     const duration = Number(service.duration_min);
-    if (!duration || duration <= 0) {
-      return bad("Service Dauer ungültig.");
-    }
 
     const weekday = new Date(date).getDay();
 
@@ -133,24 +130,30 @@ export async function GET(req, { params }) {
     const openMin = timeToMin(bh.open_time);
     const closeMin = timeToMin(bh.close_time);
 
-    if (openMin == null || closeMin == null) {
-      return json({ slots: [] });
-    }
-
     const appointments = await getAppointmentsForDay(salon.id, date);
 
-    // convert appointments into minutes
     const appts = appointments.map(a => {
 
       const start = new Date(a.start_at);
       const end = new Date(a.end_at);
 
-      const startMin = start.getHours() * 60 + start.getMinutes();
-      const endMin = end.getHours() * 60 + end.getMinutes();
+      const startLocal = start.toLocaleTimeString("en-GB", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+        timeZone: tz
+      });
+
+      const endLocal = end.toLocaleTimeString("en-GB", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+        timeZone: tz
+      });
 
       return {
-        start: startMin,
-        end: endMin
+        start: timeToMin(startLocal),
+        end: timeToMin(endLocal)
       };
 
     });
