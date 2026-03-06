@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 const UI = {
   page: {
@@ -9,7 +9,7 @@ const UI = {
     background: "linear-gradient(180deg,#070B14 0%,#0B1220 55%,#070B14 100%)",
     color: "#E5E7EB",
     padding: "48px 20px",
-    fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial"
+    fontFamily: "system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial"
   },
 
   shell:{maxWidth:1100,margin:"0 auto"},
@@ -34,8 +34,8 @@ const UI = {
 
   card:{
     borderRadius:18,
-    border:"1px solid rgba(35,48,68,0.9)",
-    background:"rgba(11,18,32,0.72)",
+    border:"1px solid rgba(35,48,68,.9)",
+    background:"rgba(11,18,32,.72)",
     padding:18
   },
 
@@ -54,6 +54,16 @@ const UI = {
     alignItems:"center",
     textDecoration:"none"
   }),
+
+  success:{
+    marginTop:10,
+    padding:"8px 12px",
+    borderRadius:10,
+    border:"1px solid rgba(16,185,129,.4)",
+    background:"rgba(16,185,129,.15)",
+    color:"#A7F3D0",
+    fontSize:12
+  },
 
   timelineWrap:{
     marginTop:14,
@@ -104,11 +114,7 @@ const UI = {
     gap:2
   },
 
-  apptTime:{
-    fontSize:11,
-    fontWeight:900,
-    lineHeight:"12px"
-  },
+  apptTime:{fontSize:11,fontWeight:900,lineHeight:"12px"},
 
   apptService:{
     fontSize:11,
@@ -125,7 +131,6 @@ const UI = {
     overflow:"hidden",
     textOverflow:"ellipsis"
   }
-
 };
 
 function pad2(n){return String(n).padStart(2,"0")}
@@ -140,11 +145,19 @@ export default function Page({params}){
 
   const slug=params?.slug
   const [today,setToday]=useState(null)
+  const [okMsg,setOkMsg]=useState("")
+  const okTimer=useRef(null)
 
   async function loadToday(){
     const res=await fetch(`/api/s/${slug}/dashboard/today`,{cache:"no-store"})
     const data=await res.json()
     if(res.ok)setToday(data)
+  }
+
+  function showOk(msg){
+    setOkMsg(msg)
+    if(okTimer.current)clearTimeout(okTimer.current)
+    okTimer.current=setTimeout(()=>setOkMsg(""),3000)
   }
 
   useEffect(()=>{
@@ -188,6 +201,8 @@ export default function Page({params}){
   <Link href={`/dashboard/${slug}/today`} style={UI.tab(true)}>Today</Link>
   <Link href={`/dashboard/${slug}/overview`} style={UI.tab(false)}>Overview</Link>
   </div>
+
+  {okMsg && <div style={UI.success}>{okMsg}</div>}
 
   <div style={UI.timelineWrap}>
   <div style={UI.timeline}>
