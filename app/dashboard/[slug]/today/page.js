@@ -132,23 +132,38 @@ const UI = {
     background: isHour ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.04)",
   }),
   appt: {
-    position: "absolute",
-    left: 10,
-    right: 10,
-    borderRadius: 14,
-    border: "1px solid rgba(255,255,255,0.10)",
-    background:
-      "linear-gradient(180deg, rgba(17,24,39,0.92) 0%, rgba(11,18,32,0.92) 100%)",
-    padding: 10,
-    boxShadow: "0 10px 22px rgba(0,0,0,0.35)",
-    display: "flex",
-    flexDirection: "column",
-    gap: 6,
-  },
+  position: "absolute",
+  left: 10,
+  right: 10,
+  borderRadius: 14,
+  border: "1px solid rgba(255,255,255,0.10)",
+  background:
+    "linear-gradient(180deg, rgba(17,24,39,0.92) 0%, rgba(11,18,32,0.92) 100%)",
+  padding: 10,
+  boxShadow: "0 10px 22px rgba(0,0,0,0.35)",
+  display: "flex",
+  flexDirection: "column",
+  gap: 4,
+  overflow: "hidden",
+  minHeight: 36
+},
   apptTop: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 },
   apptTime: { fontSize: 12, fontWeight: 900 },
-  apptService: { fontSize: 12, color: "#CBD5E1" },
-  apptName: { fontSize: 12, fontWeight: 800 },
+apptService: {
+  fontSize: 12,
+  color: "#CBD5E1",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis"
+},
+
+apptName: {
+  fontSize: 12,
+  fontWeight: 800,
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis"
+},
   apptMeta: { fontSize: 11, color: "#93A4BF" },
   apptActions: { display: "flex", gap: 8, alignItems: "center" },
   miniBtn: {
