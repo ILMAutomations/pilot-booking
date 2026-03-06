@@ -26,11 +26,13 @@ export default function BookingPage({ params }) {
   }, [slug]);
 
   async function loadSlots(serviceId, date) {
+
     const res = await fetch(
       `/api/s/${slug}/availability?service_id=${serviceId}&date=${date}`
     );
 
     const data = await res.json();
+
     setSlots(data.slots || []);
   }
 
@@ -55,19 +57,29 @@ export default function BookingPage({ params }) {
     const data = await res.json();
 
     if (data.ok) {
+
       setSuccess({
         service: selectedService.name,
         date,
         time: selectedSlot
       });
+
     } else {
-      alert(data.error || "Buchung fehlgeschlagen");
+
+      alert(data.error || "Diese Uhrzeit wurde gerade vergeben. Bitte wähle eine andere.");
+
+      // 🔧 UX FIX
+      setSelectedSlot(null);
+
+      // reload slots
+      loadSlots(selectedService.id, date);
     }
   }
 
   if (success) {
     return (
       <div style={{padding:30, maxWidth:500, margin:"auto", textAlign:"center"}}>
+
         <h1 style={{marginBottom:20}}>✅ Termin erfolgreich gebucht</h1>
 
         <p style={{fontSize:18, fontWeight:600}}>
@@ -81,6 +93,7 @@ export default function BookingPage({ params }) {
         <p style={{marginTop:20}}>
           Wir freuen uns auf deinen Besuch.
         </p>
+
       </div>
     );
   }
@@ -90,11 +103,15 @@ export default function BookingPage({ params }) {
 
       <h1 style={{marginBottom:20}}>{slug}</h1>
 
+      {/* SERVICE STEP */}
+
       {!selectedService && (
         <>
+
           <h2>Service auswählen</h2>
 
           {services.map(service => (
+
             <button
               key={service.id}
               onClick={() => setSelectedService(service)}
@@ -107,33 +124,66 @@ export default function BookingPage({ params }) {
                 minHeight:44
               }}
             >
+
               {service.name}
+
               <div style={{fontSize:14, opacity:0.7}}>
                 {service.duration_min} Minuten
               </div>
+
             </button>
+
           ))}
+
         </>
       )}
 
+      {/* DATE STEP */}
+
       {selectedService && !date && (
         <>
+
+          <button
+            onClick={()=>setSelectedService(null)}
+            style={{marginBottom:10}}
+          >
+            ← Zurück
+          </button>
+
           <h2>Datum wählen</h2>
 
           <input
             type="date"
             style={{padding:12, fontSize:16}}
             onChange={(e)=>{
+
               const d = e.target.value;
+
               setDate(d);
+
               loadSlots(selectedService.id, d);
+
             }}
           />
+
         </>
       )}
 
+      {/* SLOT STEP */}
+
       {date && !selectedSlot && (
         <>
+
+          <button
+            onClick={()=>{
+              setDate("");
+              setSlots([]);
+            }}
+            style={{marginBottom:10}}
+          >
+            ← Zurück
+          </button>
+
           <h2>Uhrzeit wählen</h2>
 
           {slots.length === 0 && (
@@ -148,7 +198,9 @@ export default function BookingPage({ params }) {
               marginTop:10
             }}
           >
+
             {slots.map(slot => (
+
               <button
                 key={slot}
                 onClick={()=>setSelectedSlot(slot)}
@@ -160,13 +212,26 @@ export default function BookingPage({ params }) {
               >
                 {slot}
               </button>
+
             ))}
+
           </div>
+
         </>
       )}
 
+      {/* CUSTOMER STEP */}
+
       {selectedSlot && (
         <>
+
+          <button
+            onClick={()=>setSelectedSlot(null)}
+            style={{marginBottom:10}}
+          >
+            ← Uhrzeit ändern
+          </button>
+
           <h2 style={{marginTop:20}}>Deine Daten</h2>
 
           <input
@@ -213,6 +278,7 @@ export default function BookingPage({ params }) {
           >
             Termin buchen
           </button>
+
         </>
       )}
 
