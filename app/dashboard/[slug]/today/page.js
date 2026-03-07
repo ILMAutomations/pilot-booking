@@ -444,8 +444,15 @@ export default function Page({ params }) {
 
   // ---- timeline math ----
   const rows = today?.rows && Array.isArray(today.rows) ? today.rows : [];
-  const displayStart = Number(today?.display_start_min ?? 540);
-  const displayEnd = Number(today?.display_end_min ?? 1140);
+ let displayStart = Number(today?.display_start_min ?? 540);
+let displayEnd = Number(today?.display_end_min ?? 1140);
+
+// snap start to full hour to avoid visual offset
+displayStart = Math.floor(displayStart / 60) * 60;
+
+// safety fallback
+if (!Number.isFinite(displayStart)) displayStart = 540;
+if (!Number.isFinite(displayEnd)) displayEnd = 1140;
 
   const slotMin = 15;
   const slotPx = 18; // height per 15-min slot
