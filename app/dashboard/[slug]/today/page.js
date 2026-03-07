@@ -461,9 +461,15 @@ export default function Page({ params }) {
   }, [displayStart, displayEnd]);
 
   function minFromISO(iso) {
-    const d = new Date(iso);
-    return d.getHours() * 60 + d.getMinutes();
-  }
+  const d = new Date(iso);
+
+  let minutes = d.getHours() * 60 + d.getMinutes();
+
+  // snap to 15min grid
+  minutes = Math.round(minutes / 15) * 15;
+
+  return minutes;
+}
 
   if (!slug) return null;
 
