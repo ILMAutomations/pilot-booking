@@ -2,6 +2,14 @@
 
 import { useEffect, useState } from "react";
 
+function formatSalonName(slug) {
+  if (!slug) return "";
+  return slug
+    .split("-")
+    .map(s => s.charAt(0).toUpperCase() + s.slice(1))
+    .join(" ");
+}
+
 export default function BookingPage({ params }) {
 
   const slug = params.slug;
@@ -18,6 +26,8 @@ export default function BookingPage({ params }) {
   const [email, setEmail] = useState("");
 
   const [success, setSuccess] = useState(null);
+
+  const salonName = formatSalonName(slug);
 
   useEffect(() => {
     fetch(`/api/s/${slug}/services`)
@@ -68,27 +78,29 @@ export default function BookingPage({ params }) {
 
       alert(data.error || "Diese Uhrzeit wurde gerade vergeben. Bitte wähle eine andere.");
 
-      // 🔧 UX FIX
       setSelectedSlot(null);
 
-      // reload slots
       loadSlots(selectedService.id, date);
     }
   }
 
   if (success) {
     return (
-      <div style={{padding:30, maxWidth:500, margin:"auto", textAlign:"center"}}>
+      <div style={{padding:30,maxWidth:520,margin:"auto",textAlign:"center"}}>
 
         <h1 style={{marginBottom:20}}>✅ Termin erfolgreich gebucht</h1>
 
-        <p style={{fontSize:18, fontWeight:600}}>
+        <div style={{fontSize:18,fontWeight:600}}>
           {success.service}
-        </p>
+        </div>
 
-        <p style={{marginTop:10}}>
-          {success.time} – {success.date}
-        </p>
+        <div style={{marginTop:10,fontSize:16}}>
+          {success.date}
+        </div>
+
+        <div style={{fontSize:16}}>
+          {success.time}
+        </div>
 
         <p style={{marginTop:20}}>
           Wir freuen uns auf deinen Besuch.
@@ -99,39 +111,67 @@ export default function BookingPage({ params }) {
   }
 
   return (
-    <div style={{padding:20, maxWidth:520, margin:"auto"}}>
+    <div style={{padding:24,maxWidth:540,margin:"auto"}}>
 
-      <h1 style={{marginBottom:20}}>{slug}</h1>
+      {/* SALON HEADER */}
+
+      <div style={{marginBottom:30,textAlign:"center"}}>
+
+        <h1 style={{marginBottom:4}}>
+          {salonName}
+        </h1>
+
+        <div style={{fontSize:14,opacity:0.7}}>
+          Online Terminbuchung
+        </div>
+
+      </div>
 
       {/* SERVICE STEP */}
 
       {!selectedService && (
         <>
 
-          <h2>Service auswählen</h2>
+          <h2 style={{marginBottom:16}}>Service auswählen</h2>
 
           {services.map(service => (
 
-            <button
+            <div
               key={service.id}
-              onClick={() => setSelectedService(service)}
               style={{
-                display:"block",
-                width:"100%",
+                border:"1px solid #ddd",
+                borderRadius:10,
                 padding:16,
-                marginBottom:10,
-                fontSize:16,
-                minHeight:44
+                marginBottom:12
               }}
             >
 
-              {service.name}
+              <div style={{fontWeight:600,fontSize:16}}>
+                {service.name}
+              </div>
 
-              <div style={{fontSize:14, opacity:0.7}}>
+              <div style={{fontSize:14,opacity:0.7,marginTop:4}}>
                 {service.duration_min} Minuten
               </div>
 
-            </button>
+              <button
+                onClick={()=>setSelectedService(service)}
+                style={{
+                  marginTop:12,
+                  width:"100%",
+                  padding:12,
+                  minHeight:44,
+                  borderRadius:8,
+                  border:"none",
+                  background:"#111",
+                  color:"#fff",
+                  fontSize:15
+                }}
+              >
+                Termin wählen
+              </button>
+
+            </div>
 
           ))}
 
@@ -145,7 +185,7 @@ export default function BookingPage({ params }) {
 
           <button
             onClick={()=>setSelectedService(null)}
-            style={{marginBottom:10}}
+            style={{marginBottom:12}}
           >
             ← Zurück
           </button>
@@ -154,7 +194,12 @@ export default function BookingPage({ params }) {
 
           <input
             type="date"
-            style={{padding:12, fontSize:16}}
+            style={{
+              padding:14,
+              fontSize:16,
+              width:"100%",
+              marginTop:10
+            }}
             onChange={(e)=>{
 
               const d = e.target.value;
@@ -179,7 +224,7 @@ export default function BookingPage({ params }) {
               setDate("");
               setSlots([]);
             }}
-            style={{marginBottom:10}}
+            style={{marginBottom:12}}
           >
             ← Zurück
           </button>
@@ -194,8 +239,8 @@ export default function BookingPage({ params }) {
             style={{
               display:"grid",
               gridTemplateColumns:"repeat(3,1fr)",
-              gap:10,
-              marginTop:10
+              gap:12,
+              marginTop:16
             }}
           >
 
@@ -207,7 +252,10 @@ export default function BookingPage({ params }) {
                 style={{
                   padding:14,
                   minHeight:44,
-                  fontSize:16
+                  fontSize:16,
+                  borderRadius:8,
+                  border:"1px solid #ddd",
+                  background:"#fff"
                 }}
               >
                 {slot}
@@ -227,12 +275,12 @@ export default function BookingPage({ params }) {
 
           <button
             onClick={()=>setSelectedSlot(null)}
-            style={{marginBottom:10}}
+            style={{marginBottom:12}}
           >
             ← Uhrzeit ändern
           </button>
 
-          <h2 style={{marginTop:20}}>Deine Daten</h2>
+          <h2 style={{marginTop:10}}>Deine Daten</h2>
 
           <input
             placeholder="Name"
@@ -240,8 +288,8 @@ export default function BookingPage({ params }) {
             onChange={(e)=>setName(e.target.value)}
             style={{
               width:"100%",
-              padding:12,
-              marginBottom:10
+              padding:14,
+              marginBottom:12
             }}
           />
 
@@ -251,8 +299,8 @@ export default function BookingPage({ params }) {
             onChange={(e)=>setPhone(e.target.value)}
             style={{
               width:"100%",
-              padding:12,
-              marginBottom:10
+              padding:14,
+              marginBottom:12
             }}
           />
 
@@ -262,8 +310,8 @@ export default function BookingPage({ params }) {
             onChange={(e)=>setEmail(e.target.value)}
             style={{
               width:"100%",
-              padding:12,
-              marginBottom:10
+              padding:14,
+              marginBottom:16
             }}
           />
 
@@ -273,7 +321,11 @@ export default function BookingPage({ params }) {
               width:"100%",
               padding:16,
               fontSize:16,
-              minHeight:44
+              minHeight:44,
+              borderRadius:8,
+              border:"none",
+              background:"#111",
+              color:"#fff"
             }}
           >
             Termin buchen
