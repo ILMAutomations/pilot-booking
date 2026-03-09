@@ -682,7 +682,7 @@ if (!Number.isFinite(displayEnd)) displayEnd = 1140;
                         </div>
                       </div>
 
-                      <div style={UI.apptName}>{a.customer_name || "—"}</div>
+ 
                       <div style={UI.apptMeta}>
                         {a.customer_phone ? `Tel: ${a.customer_phone}` : ""}
                         {a.customer_phone && a.customer_email ? " · " : ""}
