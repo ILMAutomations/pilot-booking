@@ -673,7 +673,19 @@ if (!Number.isFinite(displayEnd)) displayEnd = 1140;
                         <div>
                           <div style={UI.apptTime}>{time}</div>
                           <div style={UI.apptService}>{a.service_name || "Service"}</div>
-                  <div style={UI.apptName}>{a.customer_name || "—"}</div>
+                          <div style={UI.apptName}>{a.customer_name || "—"}</div>
+                         <div style={UI.apptMeta}>
+                           {a.customer_phone ? `Tel: ${a.customer_phone}` : ""}
+                            {a.customer_phone && a.customer_email ? " · " : ""}
+                            {a.customer_email ? `Mail: ${a.customer_email}` : ""}
+                           {(a.customer_phone || a.customer_email) && a.internal_note ? " · " : ""}
+                             {a.internal_note ? `Notiz: ${a.internal_note}` : ""}
+                               </div>
+
+                                <div style={{ fontSize: 11, color: "#93A4BF" }}>
+                                  {a.status || ""}
+                                  </div>
+                  
                         </div>
                         <div style={UI.apptActions}>
                           <button style={UI.miniBtn} onClick={() => openMove(a)}>Verschieben</button>
