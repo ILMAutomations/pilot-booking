@@ -493,6 +493,53 @@ if (!Number.isFinite(displayEnd)) displayEnd = 1140;
         </div>
 
         <div style={UI.card}>
+{/* BOOKING LINK + QR */}
+
+<div style={{
+  marginBottom:20,
+  padding:16,
+  border:"1px solid rgba(255,255,255,0.1)",
+  borderRadius:12
+}}>
+
+  <h3 style={{marginBottom:10}}>Dein Buchungslink</h3>
+
+  <div style={{marginBottom:10,fontSize:14}}>
+    {typeof window !== "undefined" && `${window.location.origin}/s/${slug}`}
+  </div>
+
+  <div style={{marginBottom:12}}>
+    {typeof window !== "undefined" && (
+      <QRCode
+        value={`${window.location.origin}/s/${slug}`}
+        size={200}
+      />
+    )}
+  </div>
+
+  <button
+    style={UI.miniBtn}
+    onClick={() => {
+
+      const canvas = document.querySelector("canvas");
+
+      if (!canvas) return;
+
+      const link = document.createElement("a");
+
+      link.download = `${slug}-booking-qr.png`;
+
+      link.href = canvas.toDataURL();
+
+      link.click();
+
+    }}
+  >
+    QR Code herunterladen
+  </button>
+
+</div>
+    
           <div style={UI.tabsRow}>
             <Link href={`/dashboard/${slug}/today`} style={UI.tab(true)}>Today</Link>
             <Link href={`/dashboard/${slug}/overview`} style={UI.tab(false)}>Overview</Link>
