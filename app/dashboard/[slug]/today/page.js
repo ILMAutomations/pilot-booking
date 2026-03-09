@@ -673,6 +673,7 @@ if (!Number.isFinite(displayEnd)) displayEnd = 1140;
                         <div>
                           <div style={UI.apptTime}>{time}</div>
                           <div style={UI.apptService}>{a.service_name || "Service"}</div>
+                  <div style={UI.apptName}>{a.customer_name || "—"}</div>
                         </div>
                         <div style={UI.apptActions}>
                           <button style={UI.miniBtn} onClick={() => openMove(a)}>Verschieben</button>
