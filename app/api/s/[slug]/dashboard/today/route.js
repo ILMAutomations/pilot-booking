@@ -21,7 +21,6 @@ export async function GET(req, { params }) {
       return Response.json({ error: "Missing slug" }, { status: 400 });
     }
 
-    // 1) Resolve salon + timezone
     const salonRes = await query(
       `select id, slug, timezone
        from public.salons
@@ -38,7 +37,6 @@ export async function GET(req, { params }) {
     const salonId = salon.id;
     const tz = salon.timezone || "Europe/Berlin";
 
-    // 2) Compute today's UTC range for the salon's local day
     const rangeRes = await query(
       `select
          (((now() at time zone $1)::date)::timestamp at time zone $1) as day_start_utc,
@@ -51,7 +49,6 @@ export async function GET(req, { params }) {
     const dayEndUtc = rangeRes.rows[0].day_end_utc;
     const weekday = rangeRes.rows[0].weekday;
 
-    // 3) Display window from business hours (optional)
     const bhRes = await query(
       `select open_time, close_time
        from public.business_hours
@@ -66,43 +63,35 @@ export async function GET(req, { params }) {
     if (bhRes.rowCount) {
       const openMin = minutesFromTimeStr(bhRes.rows[0].open_time);
       const closeMin = minutesFromTimeStr(bhRes.rows[0].close_time);
-      if (openMin != null && closeMin != null) {
-      // Raw padded window
-let rawStart = clamp(openMin - 60, 6 * 60, 22 * 60);
-let rawEnd = clamp(closeMin + 60, 6 * 60, 22 * 60);
 
-// Round to full hours for visual alignment
-displayStartMin = Math.floor(rawStart / 60) * 60;
-displayEndMin = Math.ceil(rawEnd / 60) * 60;  
+      if (openMin != null && closeMin != null) {
+        let rawStart = clamp(openMin - 60, 6 * 60, 22 * 60);
+        let rawEnd = clamp(closeMin + 60, 6 * 60, 22 * 60);
+
+        displayStartMin = Math.floor(rawStart / 60) * 60;
+        displayEndMin = Math.ceil(rawEnd / 60) * 60;
       }
     }
 
-    // 4) Appointments for today (timezone-safe range)
-    // IMPORTANT: column is customer_email (NOT customer_mail)
     const apptRes = await query(
-      `select
-         a.id,
-         a.salon_id,
-         a.service_id,
-         a.customer_id,
-         a.kind,
-         a.status,
-         a.start_at,
-         a.end_at,
-         a.notes,
-         a.created_at,
-         a.updated_at,
-         a.customer_name,
-         a.customer_phone,
-         a.customer_email,
-         a.internal_note,
-         s.name as service_name
-       from public.appointments a
-       left join public.services s on s.id = a.service_id
-       where a.salon_id = $1
-         and a.start_at >= $2
-         and a.start_at < $3
-       order by a.start_at asc`,
+      `
+      select
+        a.id,
+        a.start_at,
+        a.end_at,
+        a.customer_name,
+        a.customer_phone,
+        a.customer_email,
+        a.internal_note,
+        a.status,
+        s.name as service_name
+      from public.appointments a
+      left join public.services s on s.id = a.service_id
+      where a.salon_id = $1
+        and a.start_at >= $2
+        and a.start_at < $3
+      order by a.start_at asc
+      `,
       [salonId, dayStartUtc, dayEndUtc]
     );
 
@@ -120,6 +109,7 @@ displayEndMin = Math.ceil(rawEnd / 60) * 60;
       slug,
       message: error?.message,
     });
+
     return Response.json(
       { error: "Technischer Fehler. Bitte erneut versuchen." },
       { status: 500 }
