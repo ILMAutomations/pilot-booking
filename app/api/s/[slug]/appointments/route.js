@@ -28,9 +28,12 @@ export async function POST(req, { params }) {
       );
     }
 
-    // salon resolve
+    // ---------- resolve salon ----------
     const salonRes = await query(
-      `select id from public.salons where slug = $1 limit 1`,
+      `select id, timezone
+       from public.salons
+       where slug = $1
+       limit 1`,
       [slug]
     );
 
@@ -40,7 +43,7 @@ export async function POST(req, { params }) {
 
     const salon_id = salonRes.rows[0].id;
 
-    // service duration
+    // ---------- resolve service ----------
     const serviceRes = await query(
       `select duration_min
        from public.services
@@ -55,16 +58,35 @@ export async function POST(req, { params }) {
 
     const duration = Number(serviceRes.rows[0].duration_min);
 
+    // ---------- parse time safely ----------
     const start = new Date(start_at);
+
+    if (Number.isNaN(start.getTime())) {
+      return Response.json(
+        { error: "Invalid start_at value" },
+        { status: 400 }
+      );
+    }
+
+    // ---------- block past bookings ----------
+    const now = new Date();
+
+    if (start.getTime() < now.getTime() - 60000) {
+      return Response.json(
+        { error: "Cannot book in the past" },
+        { status: 400 }
+      );
+    }
+
     const end = new Date(start.getTime() + duration * 60000);
 
     const startISO = start.toISOString();
     const endISO = end.toISOString();
 
-    // ----- RACE CONDITION PROTECTION -----
-    // transaction start
+    // ---------- transaction ----------
     await query(`BEGIN`);
 
+    // ---------- overlap protection ----------
     const overlap = await query(
       `
       select id
@@ -86,6 +108,7 @@ export async function POST(req, { params }) {
       );
     }
 
+    // ---------- insert appointment ----------
     const insert = await query(
       `
       insert into public.appointments (
@@ -107,10 +130,10 @@ export async function POST(req, { params }) {
         service_id,
         startISO,
         endISO,
-        customer_name || null,
-        customer_phone || null,
-        customer_email || null,
-        internal_note || null
+        customer_name ? String(customer_name).trim() : null,
+        customer_phone ? String(customer_phone).trim() : null,
+        customer_email ? String(customer_email).trim() : null,
+        internal_note ? String(internal_note).trim() : null
       ]
     );
 
