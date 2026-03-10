@@ -344,13 +344,13 @@ export default function Page({ params }) {
     }
 
     const payload = {
-      service_id: serviceId,
-      start_at: start.toISOString(),
-      customer_name: customerName.trim(),
-      customer_phone: phone.trim() || null,
-      customer_email: email.trim() || null,
-      internal_note: note.trim() || null,
-    };
+  service_id: serviceId,
+  start_at: start.toISOString(),
+  customer_name: customerName.trim(),
+  customer_phone: phone ? phone.trim() : null,
+  customer_email: email ? email.trim() : null,
+  internal_note: note ? note.trim() : null,
+};
 
     const res = await fetch(`/api/s/${slug}/appointments`, {
       method: "POST",
