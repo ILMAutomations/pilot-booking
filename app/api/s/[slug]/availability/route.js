@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
 
-// ---------- helpers ----------
 function json(data, status = 200) {
   return NextResponse.json(data, { status });
 }
@@ -12,7 +11,7 @@ function bad(msg) {
 
 function isUuid(v) {
   return typeof v === "string" &&
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
+    /^[0-9a-f-]{36}$/i.test(v);
 }
 
 function timeToMin(t) {
@@ -26,8 +25,6 @@ function minToTime(m) {
   const mm = String(m % 60).padStart(2, "0");
   return `${hh}:${mm}`;
 }
-
-// ---------- DB helpers ----------
 
 async function getSalonBySlug(slug) {
   const r = await query(
@@ -73,8 +70,6 @@ async function getAppointmentsForDay(salon_id, date) {
   );
   return r.rows || [];
 }
-
-// ---------- GET availability ----------
 
 export async function GET(req, { params }) {
 
@@ -160,7 +155,27 @@ export async function GET(req, { params }) {
 
     const slots = [];
 
+    // current time block (prevents past bookings)
+    const now = new Date();
+    const todayStr = now.toISOString().slice(0,10);
+
+    let nowMin = 0;
+
+    if (date === todayStr) {
+
+      const nowLocal = now.toLocaleTimeString("en-GB", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+        timeZone: tz
+      });
+
+      nowMin = timeToMin(nowLocal);
+    }
+
     for (let m = openMin; m + duration <= closeMin; m += 15) {
+
+      if (m < nowMin) continue;
 
       const slotStart = m;
       const slotEnd = m + duration;
@@ -168,12 +183,10 @@ export async function GET(req, { params }) {
       let overlap = false;
 
       for (const a of appts) {
-
         if (slotStart < a.end && slotEnd > a.start) {
           overlap = true;
           break;
         }
-
       }
 
       if (!overlap) {
