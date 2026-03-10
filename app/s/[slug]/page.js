@@ -48,7 +48,7 @@ export default function BookingPage({ params }) {
 
   async function book() {
 
-    const start_at = `${date}T${selectedSlot}:00`;
+    const start_at = new Date(`${date}T${selectedSlot}:00`).toISOString();
 
     const res = await fetch(`/api/s/${slug}/appointments`, {
       method: "POST",
