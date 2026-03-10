@@ -20,21 +20,47 @@ export async function GET(req, { params }) {
   try {
     if (!slug) return json({ error: "Missing slug" }, 400);
 
-    const salonRes = await query("select id from public.salons where slug=$1 limit 1", [slug]);
-    if (!salonRes.rowCount) return json({ error: "Salon not found" }, 404);
+    const salonRes = await query(
+      `select id from public.salons where slug=$1 limit 1`,
+      [slug]
+    );
+
+    if (!salonRes.rowCount) {
+      return json({ error: "Salon not found" }, 404);
+    }
+
     const salon_id = salonRes.rows[0].id;
 
     const now = new Date();
-    const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0));
-    const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 7, 0, 0, 0));
+
+    const start = new Date(Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate(),
+      0, 0, 0
+    ));
+
+    const end = new Date(Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate() + 7,
+      0, 0, 0
+    ));
 
     const rowsRes = await query(
       `
       select
-        a.*,
+        a.id,
+        a.start_at,
+        a.end_at,
+        a.customer_name,
+        a.customer_phone,
+        a.customer_email,
+        a.internal_note,
+        a.status,
         s.name as service_name
       from public.appointments a
-      join public.services s on s.id = a.service_id
+      left join public.services s on s.id = a.service_id
       where a.salon_id = $1
         and a.start_at >= $2
         and a.start_at < $3
@@ -49,9 +75,11 @@ export async function GET(req, { params }) {
     });
 
     const days = [];
+
     for (let i = 0; i < 7; i++) {
-      const d = new Date(start.getTime() + i * 24 * 60 * 60 * 1000);
+      const d = new Date(start.getTime() + i * 86400000);
       const key = dayKeyUTC(d);
+
       days.push({
         date: key,
         rows: rows.filter((x) => x.day_key === key),
@@ -59,12 +87,18 @@ export async function GET(req, { params }) {
     }
 
     return json({ slug, salon_id, days });
+
   } catch (error) {
+
     console.error("[API_ERROR]", {
       route: "/api/s/[slug]/dashboard/week",
       slug,
       message: error?.message,
     });
-    return json({ error: "Technischer Fehler. Bitte erneut versuchen." }, 500);
+
+    return json(
+      { error: "Technischer Fehler. Bitte erneut versuchen." },
+      500
+    );
   }
 }
