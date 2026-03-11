@@ -1,5 +1,7 @@
 import { query } from "@/lib/db";
 
+export const dynamic = "force-dynamic";
+
 function minutesFromTimeStr(t) {
   if (!t) return null;
   const parts = String(t).split(":");
