@@ -683,17 +683,27 @@ if (!Number.isFinite(displayEnd)) displayEnd = 1140;
                       </div>
 
  
-                      <div style={UI.apptMeta}>
-                        {a.customer_phone ? `Tel: ${a.customer_phone}` : ""}
-                        {a.customer_phone && a.customer_email ? " · " : ""}
-                        {a.customer_email ? `Mail: ${a.customer_email}` : ""}
-                        {(a.customer_phone || a.customer_email) && a.internal_note ? " · " : ""}
-                        {a.internal_note ? `Notiz: ${a.internal_note}` : ""}
-                      </div>
+                      {(a.customer_phone || a.customer_email || a.internal_note) && (
+  <div style={UI.apptMeta}>
 
-                      <div style={{ fontSize: 11, color: "#93A4BF" }}>
-                        {a.status || ""}
-                      </div>
+    {a.customer_phone && (
+      <div>Tel: {a.customer_phone}</div>
+    )}
+
+    {a.customer_email && (
+      <div>Mail: {a.customer_email}</div>
+    )}
+
+    {a.internal_note && (
+      <div>Notiz: {a.internal_note}</div>
+    )}
+
+  </div>
+)}
+
+<div style={{ fontSize: 11, color: "#93A4BF" }}>
+  {a.status || ""}
+</div>
                     </div>
                   );
                 })}
