@@ -682,6 +682,7 @@ if (!Number.isFinite(displayEnd)) displayEnd = 1140;
                         </div>
                       </div>
 
+                  {(a.customer_phone || a.customer_email || a.internal_note) && (
   <div style={UI.apptMeta}>
 
   {(a.customer_phone || a.customer_email || a.internal_note || a.status) && (
