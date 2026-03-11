@@ -686,6 +686,9 @@ if (!Number.isFinite(displayEnd)) displayEnd = 1140;
                       {(a.customer_phone || a.customer_email || a.internal_note) && (
   <div style={UI.apptMeta}>
 
+  {(a.customer_phone || a.customer_email || a.internal_note || a.status) && (
+  <div style={UI.apptMeta}>
+
     {a.customer_phone && (
       <div>Tel: {a.customer_phone}</div>
     )}
@@ -696,6 +699,10 @@ if (!Number.isFinite(displayEnd)) displayEnd = 1140;
 
     {a.internal_note && (
       <div>Notiz: {a.internal_note}</div>
+    )}
+
+    {a.status && (
+      <div>{a.status}</div>
     )}
 
   </div>
