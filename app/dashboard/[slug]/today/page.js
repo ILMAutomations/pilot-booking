@@ -682,10 +682,8 @@ if (!Number.isFinite(displayEnd)) displayEnd = 1140;
                         </div>
                       </div>
 
-                  {(a.customer_phone || a.customer_email || a.internal_note) && (
-  <div style={UI.apptMeta}>
-
-  {(a.customer_phone || a.customer_email || a.internal_note || a.status) && (
+ 
+                      {(a.customer_phone || a.customer_email || a.internal_note) && (
   <div style={UI.apptMeta}>
 
     {a.customer_phone && (
@@ -700,12 +698,12 @@ if (!Number.isFinite(displayEnd)) displayEnd = 1140;
       <div>Notiz: {a.internal_note}</div>
     )}
 
-    {a.status && (
-      <div>{a.status}</div>
-    )}
-
   </div>
 )}
+
+<div style={{ fontSize: 11, color: "#93A4BF" }}>
+  {a.status || ""}
+</div>
                     </div>
                   );
                 })}
