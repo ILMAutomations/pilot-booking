@@ -682,8 +682,7 @@ if (!Number.isFinite(displayEnd)) displayEnd = 1140;
                         </div>
                       </div>
 
- 
-<div style={UI.apptMeta}>
+ <div style={UI.apptMeta}>
 
   {a.customer_phone && (
     <div>Tel: {a.customer_phone}</div>
@@ -702,7 +701,6 @@ if (!Number.isFinite(displayEnd)) displayEnd = 1140;
   )}
 
 </div>
-)}
 
 <div style={{ fontSize: 11, color: "#93A4BF" }}>
   {a.status || ""}
