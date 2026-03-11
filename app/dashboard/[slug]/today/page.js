@@ -662,7 +662,7 @@ if (!Number.isFinite(displayEnd)) displayEnd = 1140;
                   const startMin = minFromISO(a.start_at);
                   const endMin = minFromISO(a.end_at);
                   const top = ((startMin - displayStart) / slotMin) * slotPx;
-                  const height = Math.max(slotPx, ((endMin - startMin) / slotMin) * slotPx);
+                  const height = Math.max(60, ((endMin - startMin) / slotMin) * slotPx);
 
                   const st = new Date(a.start_at);
                   const time = `${pad2(st.getHours())}:${pad2(st.getMinutes())}`;
