@@ -17,9 +17,12 @@ export async function GET(req, { params }) {
   const slug = params?.slug;
 
   try {
+
     if (!slug) {
       return Response.json({ error: "Missing slug" }, { status: 400 });
     }
+
+    // ---------- resolve salon ----------
 
     const salonRes = await query(
       `select id, slug, timezone
@@ -37,6 +40,8 @@ export async function GET(req, { params }) {
     const salonId = salon.id;
     const tz = salon.timezone || "Europe/Berlin";
 
+    // ---------- today range in salon timezone ----------
+
     const rangeRes = await query(
       `select
          (((now() at time zone $1)::date)::timestamp at time zone $1) as day_start_utc,
@@ -48,6 +53,8 @@ export async function GET(req, { params }) {
     const dayStartUtc = rangeRes.rows[0].day_start_utc;
     const dayEndUtc = rangeRes.rows[0].day_end_utc;
     const weekday = rangeRes.rows[0].weekday;
+
+    // ---------- business hours ----------
 
     const bhRes = await query(
       `select open_time, close_time
@@ -61,10 +68,12 @@ export async function GET(req, { params }) {
     let displayEndMin = 21 * 60;
 
     if (bhRes.rowCount) {
+
       const openMin = minutesFromTimeStr(bhRes.rows[0].open_time);
       const closeMin = minutesFromTimeStr(bhRes.rows[0].close_time);
 
       if (openMin != null && closeMin != null) {
+
         let rawStart = clamp(openMin - 60, 6 * 60, 22 * 60);
         let rawEnd = clamp(closeMin + 60, 6 * 60, 22 * 60);
 
@@ -72,6 +81,8 @@ export async function GET(req, { params }) {
         displayEndMin = Math.ceil(rawEnd / 60) * 60;
       }
     }
+
+    // ---------- appointments ----------
 
     const apptRes = await query(
       `
@@ -95,15 +106,33 @@ export async function GET(req, { params }) {
       [salonId, dayStartUtc, dayEndUtc]
     );
 
+    // ---------- normalize rows ----------
+
+    const rows = apptRes.rows.map(r => ({
+      id: r.id,
+      start_at: r.start_at,
+      end_at: r.end_at,
+      service_name: r.service_name || "",
+      customer_name: r.customer_name || "",
+      customer_phone: r.customer_phone || "",
+      customer_email: r.customer_email || "",
+      internal_note: r.internal_note || "",
+      status: r.status || ""
+    }));
+
+    // ---------- response ----------
+
     return Response.json({
       slug: salon.slug,
       salon_id: salonId,
-      today_count: apptRes.rows.length,
-      rows: apptRes.rows,
+      today_count: rows.length,
+      rows,
       display_start_min: displayStartMin,
-      display_end_min: displayEndMin,
+      display_end_min: displayEndMin
     });
+
   } catch (error) {
+
     console.error("[API_ERROR]", {
       route: "/api/s/[slug]/dashboard/today",
       slug,
