@@ -799,6 +799,7 @@ const timeline = useMemo(() => {
       </div>
             {detailOpen && detailAppt && (
   <div
+    onClick={() => setDetailOpen(false)}
     style={{
       position: "fixed",
       inset: 0,
@@ -810,14 +811,15 @@ const timeline = useMemo(() => {
     }}
   >
     <div
-      style={{
-        width: 420,
-        borderRadius: 16,
-        padding: 20,
-        background: "#0B1220",
-        border: "1px solid rgba(255,255,255,0.1)"
-      }}
-    >
+  onClick={(e) => e.stopPropagation()}
+  style={{
+    width: 420,
+    borderRadius: 16,
+    padding: 20,
+    background: "#0B1220",
+    border: "1px solid rgba(255,255,255,0.1)"
+  }}
+>
 
       <h3 style={{marginBottom:12}}>Appointment</h3>
 
