@@ -262,8 +262,14 @@ export default function Page({ params }) {
 
   // owner-control modal
   const [moveOpen, setMoveOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailAppt, setDetailAppt] = useState(null);
   const [moveId, setMoveId] = useState("");
   const [moveStart, setMoveStart] = useState("");
+  function openDetail(appt) {
+  setDetailAppt(appt);
+  setDetailOpen(true);
+}
 
   // business hours
   const [hours, setHours] = useState(() =>
@@ -660,7 +666,11 @@ const timeline = useMemo(() => {
                   const time = `${pad2(st.getHours())}:${pad2(st.getMinutes())}`;
 
                   return (
-                    <div key={a.id} style={{ ...UI.appt, top, height }}>
+                    <div
+                  key={a.id}
+                  style={{ ...UI.appt, top, height, cursor: "pointer" }}
+                   onClick={() => openDetail(a)}
+                   >
                       <div style={UI.apptTop}>
                         <div>
                           <div style={UI.apptTime}>{time}</div>
@@ -756,6 +766,77 @@ const timeline = useMemo(() => {
           {hoursErr && <div style={UI.error}>{hoursErr}</div>}
         </div>
       </div>
+            {detailOpen && detailAppt && (
+  <div
+    style={{
+      position: "fixed",
+      inset: 0,
+      background: "rgba(0,0,0,0.6)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      zIndex: 1000
+    }}
+  >
+    <div
+      style={{
+        width: 420,
+        borderRadius: 16,
+        padding: 20,
+        background: "#0B1220",
+        border: "1px solid rgba(255,255,255,0.1)"
+      }}
+    >
+
+      <h3 style={{marginBottom:12}}>Appointment</h3>
+
+      <div><b>Service:</b> {detailAppt.service_name}</div>
+      <div><b>Name:</b> {detailAppt.customer_name}</div>
+
+      {detailAppt.customer_phone && (
+        <div><b>Tel:</b> {detailAppt.customer_phone}</div>
+      )}
+
+      {detailAppt.customer_email && (
+        <div><b>Email:</b> {detailAppt.customer_email}</div>
+      )}
+
+      {detailAppt.internal_note && (
+        <div><b>Note:</b> {detailAppt.internal_note}</div>
+      )}
+
+      <div style={{marginTop:10}}>
+        <b>Status:</b> {detailAppt.status}
+      </div>
+
+      <div style={{display:"flex", gap:10, marginTop:16}}>
+
+        <button
+          style={UI.miniBtn}
+          onClick={() => openMove(detailAppt)}
+        >
+          Move
+        </button>
+
+        <button
+          style={UI.miniBtn}
+          onClick={() => deleteAppt(detailAppt.id)}
+        >
+          Delete
+        </button>
+
+        <button
+          style={UI.miniBtn}
+          onClick={() => setDetailOpen(false)}
+        >
+          Close
+        </button>
+
+      </div>
+
+    </div>
+  </div>
+)}
     </div>
   );
 }
