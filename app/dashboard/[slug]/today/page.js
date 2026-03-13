@@ -405,6 +405,27 @@ export default function Page({ params }) {
   }
 
   async function deleteAppt(id) {
+    async function updateStatus(status) {
+
+  if (!detailAppt?.id) return;
+
+  const res = await fetch(`/api/s/${slug}/appointments/${detailAppt.id}`, {
+    method: "PATCH",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ status })
+  });
+
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok || data?.error) {
+    setError(data?.error || "Technischer Fehler.");
+    return;
+  }
+
+  setDetailOpen(false);
+
+  await loadToday();
+}
     if (!confirm("Termin wirklich löschen?")) return;
     setError("");
     const res = await fetch(`/api/s/${slug}/appointments/${id}`, { method: "DELETE" });
@@ -809,6 +830,30 @@ const timeline = useMemo(() => {
         <b>Status:</b> {detailAppt.status}
       </div>
 
+        <div style={{display:"flex", gap:8, marginTop:12}}>
+
+<button
+ style={UI.miniBtn}
+ onClick={() => updateStatus("completed")}
+>
+Completed
+</button>
+
+<button
+ style={UI.miniBtn}
+ onClick={() => updateStatus("no-show")}
+>
+No Show
+</button>
+
+<button
+ style={UI.miniBtn}
+ onClick={() => updateStatus("cancelled")}
+>
+Cancel
+</button>
+
+</div>
       <div style={{display:"flex", gap:10, marginTop:16}}>
 
         <button
