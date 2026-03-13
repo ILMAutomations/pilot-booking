@@ -841,7 +841,7 @@ Completed
 
 <button
  style={UI.miniBtn}
- onClick={() => updateStatus("no-show")}
+ onClick={() => updateStatus("no_show")}
 >
 No Show
 </button>
@@ -858,7 +858,10 @@ Cancel
 
         <button
           style={UI.miniBtn}
-          onClick={() => openMove(detailAppt)}
+          onClick={() => {
+  setDetailOpen(false);
+  openMove(detailAppt);
+}}
         >
           Move
         </button>
