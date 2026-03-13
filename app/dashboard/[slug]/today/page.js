@@ -422,9 +422,10 @@ export default function Page({ params }) {
     return;
   }
 
-  setDetailOpen(false);
+setDetailOpen(false);
 
-  await loadToday();
+await loadToday();
+setDetailAppt(null);
 }
     if (!confirm("Termin wirklich löschen?")) return;
     setError("");
