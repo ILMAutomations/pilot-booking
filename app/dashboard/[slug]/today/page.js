@@ -458,13 +458,13 @@ if (!Number.isFinite(displayEnd)) displayEnd = 1140;
   const totalSlots = Math.max(1, Math.ceil((displayEnd - displayStart) / slotMin));
   const gridHeight = totalSlots * slotPx;
 
-  const axisMarks = useMemo(() => {
-    const marks = [];
-    for (let m = displayStart; m <= displayEnd; m += slotMin) {
-      marks.push(m);
-    }
-    return marks;
-  }, [displayStart, displayEnd]);
+const timeline = useMemo(() => {
+  const marks = [];
+  for (let m = displayStart; m <= displayEnd; m += slotMin) {
+    marks.push(m);
+  }
+  return marks;
+}, [displayStart, displayEnd]);
 
   function minFromISO(iso) {
   const d = new Date(iso);
@@ -630,7 +630,7 @@ if (!Number.isFinite(displayEnd)) displayEnd = 1140;
           <div style={UI.timelineWrap}>
             <div style={UI.timeline}>
               <div style={UI.axis}>
-                {axisMarks.map((m) => {
+               {timeline.map((m) => {
                   const isHour = m % 60 === 0;
                   return (
                     <div key={m} style={UI.axisItem(isHour)}>
@@ -642,8 +642,8 @@ if (!Number.isFinite(displayEnd)) displayEnd = 1140;
 
               <div style={{ ...UI.gridArea, height: gridHeight }}>
                 {/* slot lines */}
-                {axisMarks.map((m) => {
-                  const idx = (m - displayStart) / slotMin;
+                {timeline.map((m) => {
+                  const idx = timeline.indexOf(m);
                   const top = idx * slotPx;
                   const isHour = m % 60 === 0;
                   return <div key={m} style={{ ...UI.slotLine(isHour), top }} />;
