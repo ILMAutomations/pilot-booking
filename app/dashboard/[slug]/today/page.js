@@ -152,8 +152,9 @@ const UI = {
 apptService: {
   fontSize: 12,
   color: "#CBD5E1",
-  whiteSpace: "normal",
-  lineHeight: "14px"
+  lineHeight: "14px",
+  maxHeight: "28px",
+  overflow: "hidden"
 },
 
 apptName: {
@@ -701,9 +702,6 @@ if (!Number.isFinite(displayEnd)) displayEnd = 1140;
 
 </div>
 
-<div style={{ fontSize: 11, color: "#93A4BF" }}>
-  {a.status || ""}
-</div>
                     </div>
                   );
                 })}
