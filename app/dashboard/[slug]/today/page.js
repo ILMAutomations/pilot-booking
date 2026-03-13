@@ -405,9 +405,11 @@ export default function Page({ params }) {
   }
 
   async function deleteAppt(id) {
-    async function updateStatus(status) {
+  async function updateStatus(status) {
 
   if (!detailAppt?.id) return;
+
+  console.log("STATUS CLICKED:", status);
 
   const res = await fetch(`/api/${slug}/appointments/${detailAppt.id}`, {
     method: "PATCH",
@@ -415,17 +417,21 @@ export default function Page({ params }) {
     body: JSON.stringify({ status })
   });
 
+  console.log("PATCH RESPONSE:", res.status);
+
   const data = await res.json().catch(() => ({}));
+
+  console.log("PATCH DATA:", data);
 
   if (!res.ok || data?.error) {
     setError(data?.error || "Technischer Fehler.");
     return;
   }
 
-setDetailOpen(false);
+  setDetailOpen(false);
 
-await loadToday();
-setDetailAppt(null);
+  await loadToday();
+  setDetailAppt(null);
 }
     if (!confirm("Termin wirklich löschen?")) return;
     setError("");
