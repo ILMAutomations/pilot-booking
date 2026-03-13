@@ -124,7 +124,7 @@ const UI = {
     color: isHour ? "#E5E7EB" : "rgba(229,231,235,0.55)",
     opacity: isHour ? 1 : 0.85,
   }),
-  gridArea: { position: "relative", padding: "10px 12px 14px 12px" },
+  gridArea: { position: "relative", padding: "0 12px 14px 12px" },
   slotLine: (isHour) => ({
     position: "absolute",
     left: 0,
