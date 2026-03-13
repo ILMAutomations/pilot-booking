@@ -124,13 +124,34 @@ export async function PATCH(req, { params }) {
 
     const body = await req.json().catch(() => ({}));
     const start_at_raw = body?.start_at;
-
+    const new_status = body?.status;
+    
     if (!start_at_raw) return bad("start_at fehlt.");
     const newStart = new Date(start_at_raw);
     if (Number.isNaN(newStart.getTime())) return bad("Ungültiges Datum.");
 
     const appt = await getAppointment(salon.id, id);
     if (!appt) return bad("Termin nicht gefunden.");
+    // ---- STATUS UPDATE ----
+
+if (new_status) {
+
+  const allowed = ["booked", "completed", "no-show", "cancelled"];
+
+  if (!allowed.includes(new_status)) {
+    return bad("Ungültiger Status.");
+  }
+
+  await query(
+    `update public.appointments
+     set status = $1,
+         updated_at = now()
+     where salon_id = $2 and id = $3`,
+    [new_status, salon.id, id]
+  );
+
+  return json({ ok: true });
+}
 
     const dur = Number(appt.service_duration_min || 0);
     if (!Number.isFinite(dur) || dur <= 0) return bad("Service-Dauer fehlt.");
