@@ -145,25 +145,22 @@ const UI = {
   display: "flex",
   flexDirection: "column",
   gap: 4,
-  overflow: "hidden",
-  minHeight: 36
+  minHeight: 70
 },
   apptTop: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 },
   apptTime: { fontSize: 12, fontWeight: 900 },
 apptService: {
   fontSize: 12,
   color: "#CBD5E1",
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-  textOverflow: "ellipsis"
+  whiteSpace: "normal",
+  lineHeight: "14px"
 },
 
 apptName: {
   fontSize: 12,
   fontWeight: 800,
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-  textOverflow: "ellipsis"
+  whiteSpace: "normal",
+  lineHeight: "14px"
 },
   apptMeta: { fontSize: 11, color: "#93A4BF" },
   apptActions: { display: "flex", gap: 8, alignItems: "center" },
@@ -696,9 +693,11 @@ if (!Number.isFinite(displayEnd)) displayEnd = 1140;
     <div>Notiz: {a.internal_note}</div>
   )}
 
-  {a.status && (
-    <div>{a.status}</div>
-  )}
+ {a.status && (
+  <div style={{fontSize:11,fontWeight:700,color:"#93C5FD"}}>
+    Status: {a.status}
+  </div>
+)}
 
 </div>
 
