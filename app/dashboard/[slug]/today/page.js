@@ -839,10 +839,10 @@ const timeline = useMemo(() => {
       )}
 
       <div style={{marginTop:10}}>
-        <b>Status:</b> {detailAppt.status}
-      </div>
+  <b>Status:</b> {detailAppt.status}
+</div>
 
-        <div style={{display:"flex", gap:8, marginTop:12}}>
+<div style={{display:"flex", gap:8, marginTop:12}}>
 
 <button
  style={UI.miniBtn}
