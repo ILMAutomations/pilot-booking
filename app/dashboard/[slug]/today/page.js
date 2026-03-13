@@ -408,7 +408,6 @@ export default function Page({ params }) {
  async function updateStatus(status) {
 
   const apptId = detailAppt?.id;
-
   if (!apptId) return;
 
   try {
@@ -426,10 +425,12 @@ export default function Page({ params }) {
       return;
     }
 
-    setDetailOpen(false);
-    setDetailAppt(null);
-
-    await loadToday();
+    // state updates outside click stack
+    setTimeout(() => {
+      setDetailOpen(false);
+      setDetailAppt(null);
+      loadToday();
+    }, 0);
 
   } catch (err) {
     console.error("STATUS UPDATE ERROR:", err);
@@ -845,7 +846,7 @@ const timeline = useMemo(() => {
  style={UI.miniBtn}
  onClick={(e) => {
    e.stopPropagation();
-   updateStatus("completed");
+   setTimeout(() => updateStatus("completed"), 0);
  }}
 >
 Completed
@@ -855,22 +856,20 @@ Completed
  style={UI.miniBtn}
  onClick={(e) => {
    e.stopPropagation();
-   updateStatus("no_show");
+   setTimeout(() => updateStatus("no_show"), 0);
  }}
 >
 No Show
 </button>
-
 <button
  style={UI.miniBtn}
  onClick={(e) => {
    e.stopPropagation();
-   updateStatus("cancelled");
+   setTimeout(() => updateStatus("cancelled"), 0);
  }}
 >
 Cancel
 </button>
-
 </div>
       <div style={{display:"flex", gap:10, marginTop:16}}>
 
