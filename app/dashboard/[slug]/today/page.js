@@ -843,21 +843,30 @@ const timeline = useMemo(() => {
 
 <button
  style={UI.miniBtn}
- onClick={() => updateStatus("completed")}
+ onClick={(e) => {
+   e.stopPropagation();
+   updateStatus("completed");
+ }}
 >
 Completed
 </button>
 
 <button
  style={UI.miniBtn}
- onClick={() => updateStatus("no_show")}
+ onClick={(e) => {
+   e.stopPropagation();
+   updateStatus("no_show");
+ }}
 >
 No Show
 </button>
 
 <button
  style={UI.miniBtn}
- onClick={() => updateStatus("cancelled")}
+ onClick={(e) => {
+   e.stopPropagation();
+   updateStatus("cancelled");
+ }}
 >
 Cancel
 </button>
