@@ -405,33 +405,35 @@ export default function Page({ params }) {
   }
 
   async function deleteAppt(id) {
-  async function updateStatus(status) {
+ async function updateStatus(status) {
 
-  if (!detailAppt?.id) return;
+  const apptId = detailAppt?.id;
 
-  console.log("STATUS CLICKED:", status);
+  if (!apptId) return;
 
-  const res = await fetch(`/api/${slug}/appointments/${detailAppt.id}`, {
-    method: "PATCH",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ status })
-  });
+  try {
 
-  console.log("PATCH RESPONSE:", res.status);
+    const res = await fetch(`/api/${slug}/appointments/${apptId}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ status })
+    });
 
-  const data = await res.json().catch(() => ({}));
+    const data = await res.json().catch(() => ({}));
 
-  console.log("PATCH DATA:", data);
+    if (!res.ok || data?.error) {
+      setError(data?.error || "Technischer Fehler.");
+      return;
+    }
 
-  if (!res.ok || data?.error) {
-    setError(data?.error || "Technischer Fehler.");
-    return;
+    setDetailOpen(false);
+    setDetailAppt(null);
+
+    await loadToday();
+
+  } catch (err) {
+    console.error("STATUS UPDATE ERROR:", err);
   }
-
-  setDetailOpen(false);
-
-  await loadToday();
-  setDetailAppt(null);
 }
     if (!confirm("Termin wirklich löschen?")) return;
     setError("");
