@@ -876,7 +876,8 @@ Cancel
 
         <button
           style={UI.miniBtn}
-          onClick={() => {
+          onClick={(e) => {
+  e.stopPropagation();
   setDetailOpen(false);
   openMove(detailAppt);
 }}
@@ -886,14 +887,20 @@ Cancel
 
         <button
           style={UI.miniBtn}
-          onClick={() => deleteAppt(detailAppt.id)}
+          onClick={(e) => {
+  e.stopPropagation();
+  deleteAppt(detailAppt.id);
+}}
         >
           Delete
         </button>
 
         <button
           style={UI.miniBtn}
-          onClick={() => setDetailOpen(false)}
+          onClick={(e) => {
+  e.stopPropagation();
+  setDetailOpen(false);
+}}
         >
           Close
         </button>
