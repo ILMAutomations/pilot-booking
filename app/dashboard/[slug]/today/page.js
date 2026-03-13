@@ -468,13 +468,7 @@ if (!Number.isFinite(displayEnd)) displayEnd = 1140;
 
   function minFromISO(iso) {
   const d = new Date(iso);
-
-  let minutes = d.getHours() * 60 + d.getMinutes();
-
-  // snap to 15min grid
-  minutes = Math.floor(minutes / 15) * 15;
-
-  return minutes;
+  return d.getHours() * 60 + d.getMinutes();
 }
 
   if (!slug) return null;
@@ -659,8 +653,8 @@ if (!Number.isFinite(displayEnd)) displayEnd = 1140;
                 {rows.map((a) => {
                   const startMin = minFromISO(a.start_at);
                   const endMin = minFromISO(a.end_at);
-                  const top = ((startMin - displayStart) / slotMin) * slotPx;
-                  const height = Math.max(48, ((endMin - startMin) / slotMin) * slotPx);
+                  const top = ((startMin - displayStart) / 15) * slotPx;
+                  const height = Math.max(48, ((endMin - startMin) / 15) * slotPx);
 
                   const st = new Date(a.start_at);
                   const time = `${pad2(st.getHours())}:${pad2(st.getMinutes())}`;
