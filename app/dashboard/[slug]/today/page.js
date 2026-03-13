@@ -472,7 +472,7 @@ if (!Number.isFinite(displayEnd)) displayEnd = 1140;
   let minutes = d.getHours() * 60 + d.getMinutes();
 
   // snap to 15min grid
-  minutes = Math.round(minutes / 15) * 15;
+  minutes = Math.floor(minutes / 15) * 15;
 
   return minutes;
 }
@@ -660,7 +660,7 @@ if (!Number.isFinite(displayEnd)) displayEnd = 1140;
                   const startMin = minFromISO(a.start_at);
                   const endMin = minFromISO(a.end_at);
                   const top = ((startMin - displayStart) / slotMin) * slotPx;
-                  const height = Math.max(60, ((endMin - startMin) / slotMin) * slotPx);
+                  const height = Math.max(48, ((endMin - startMin) / slotMin) * slotPx);
 
                   const st = new Date(a.start_at);
                   const time = `${pad2(st.getHours())}:${pad2(st.getMinutes())}`;
