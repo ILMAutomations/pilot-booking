@@ -409,7 +409,7 @@ export default function Page({ params }) {
 
   if (!detailAppt?.id) return;
 
-  const res = await fetch(`/api/s/${slug}/appointments/${detailAppt.id}`, {
+  const res = await fetch(`/api/${slug}/appointments/${detailAppt.id}`, {
     method: "PATCH",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ status })
