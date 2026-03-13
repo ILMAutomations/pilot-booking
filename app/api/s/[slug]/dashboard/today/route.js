@@ -15,7 +15,25 @@ function clamp(n, min, max) {
   return Math.max(min, Math.min(max, n));
 }
 
+function normalizeStatus(status) {
+
+  if (!status) return "booked";
+
+  if (status === "confirmed") return "booked";
+
+  if (status === "booked") return "booked";
+
+  if (status === "completed") return "completed";
+
+  if (status === "no_show") return "no_show";
+
+  if (status === "cancelled") return "cancelled";
+
+  return "booked";
+}
+
 export async function GET(req, { params }) {
+
   const slug = params?.slug;
 
   try {
@@ -111,26 +129,43 @@ export async function GET(req, { params }) {
     // ---------- normalize rows ----------
 
     const rows = apptRes.rows.map(r => ({
+
       id: r.id,
+
       start_at: r.start_at,
+
       end_at: r.end_at,
+
       service_name: r.service_name || "",
+
       customer_name: r.customer_name || "",
+
       customer_phone: r.customer_phone || "",
+
       customer_email: r.customer_email || "",
+
       internal_note: r.internal_note || "",
-      status: r.status || ""
+
+      status: normalizeStatus(r.status)
+
     }));
 
     // ---------- response ----------
 
     return Response.json({
+
       slug: salon.slug,
+
       salon_id: salonId,
+
       today_count: rows.length,
+
       rows,
+
       display_start_min: displayStartMin,
+
       display_end_min: displayEndMin
+
     });
 
   } catch (error) {
