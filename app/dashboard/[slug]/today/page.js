@@ -115,7 +115,7 @@ const UI = {
     overflow: "hidden",
   },
   timeline: { display: "grid", gridTemplateColumns: "86px 1fr" },
-  axis: { padding: "10px 0" },
+ axis: { padding: "0" },
   axisItem: (isHour) => ({
     height: 18, // 15-min slot height
     paddingLeft: 12,
