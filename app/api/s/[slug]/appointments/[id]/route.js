@@ -136,7 +136,7 @@ export async function PATCH(req, { params }) {
 
 if (new_status) {
 
-  const allowed = ["booked", "completed", "no-show", "cancelled"];
+  const allowed = ["booked", "completed", "no-show", "no_show", "cancelled"];
 
   if (!allowed.includes(new_status)) {
     return bad("Ungültiger Status.");
