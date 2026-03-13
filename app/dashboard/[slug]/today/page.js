@@ -838,8 +838,7 @@ const timeline = useMemo(() => {
         <div><b>Note:</b> {detailAppt.internal_note}</div>
       )}
 
-        <div style={{marginTop:10}}>
-      <div style={{marginTop:10}}>
+ <div style={{marginTop:10}}>
   <b>Status:</b> {detailAppt.status}
 </div>
 
