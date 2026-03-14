@@ -250,6 +250,13 @@ function toHHMM(min) {
   return `${pad2(h)}:${pad2(m)}`;
 }
 function isoToLocalInputValue(iso) {
+ function statusIcon(status) {
+  if (status === "completed") return "✓";
+  if (status === "no_show") return "✕";
+  if (status === "cancelled") return "—";
+  if (status === "confirmed") return "•";
+  return "";
+}
   const d = new Date(iso);
   const y = d.getFullYear();
   const m = pad2(d.getMonth() + 1);
@@ -740,8 +747,8 @@ const timeline = useMemo(() => {
                           <div style={UI.apptTime}>{time}</div>
                           <div style={UI.apptService}>{a.service_name || "Service"}</div>
                           <div style={UI.apptName}>{a.customer_name || "—"}</div>
-                    <div style={{ fontSize:11, fontWeight:700 }}>
- {a.status}
+                   <div style={{ fontSize:11, fontWeight:700 }}>
+ {statusIcon(a.status)} {a.status}
 </div>
                         </div>
                         <div style={UI.apptActions}>
