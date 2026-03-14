@@ -855,7 +855,7 @@ const timeline = useMemo(() => {
  style={UI.miniBtn}
  onClick={(e) => {
    e.stopPropagation();
-   setTimeout(() => updateStatus("booked"), 0);
+   setTimeout(() => updateStatus("completed"), 0);
  }}
 >
 Completed
