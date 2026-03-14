@@ -848,7 +848,7 @@ const timeline = useMemo(() => {
  style={UI.miniBtn}
  onClick={(e) => {
    e.stopPropagation();
-   setTimeout(() => updateStatus("completed"), 0);
+   console.log("BUTTON CLICKED");
  }}
 >
 Completed
