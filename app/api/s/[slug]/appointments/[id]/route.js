@@ -123,8 +123,23 @@ export async function PATCH(req, { params }) {
     if (!salon) return bad("Salon nicht gefunden.");
 
     const body = await req.json().catch(() => ({}));
+
+const status = body?.status;
+
+if (status) {
+
+  await query(
+    `update public.appointments
+     set status = $1,
+         updated_at = now()
+     where salon_id = $2 and id = $3`,
+    [status, salon.id, id]
+  );
+
+  return json({ ok: true });
+}
+    
     const start_at_raw = body?.start_at;
-    const new_status = body?.status;
     
     if (!start_at_raw) return bad("start_at fehlt.");
     const newStart = new Date(start_at_raw);
