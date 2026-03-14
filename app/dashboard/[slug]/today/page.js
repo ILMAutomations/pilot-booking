@@ -405,6 +405,32 @@ export default function Page({ params }) {
   }
 
   async function deleteAppt(id) {
+   async function updateStatus(status) {
+
+  if (!detailAppt?.id) return;
+
+  try {
+
+    const res = await fetch(`/api/s/${slug}/appointments/${detailAppt.id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ status })
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok || data?.error) {
+      setError(data?.error || "Status konnte nicht aktualisiert werden.");
+      return;
+    }
+
+    setDetailOpen(false);
+    await loadToday();
+
+  } catch (e) {
+    setError("Technischer Fehler. Bitte erneut versuchen.");
+  }
+}
  async function updateStatus(status) {
 
   const apptId = detailAppt?.id;
