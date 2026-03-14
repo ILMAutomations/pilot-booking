@@ -404,14 +404,35 @@ export default function Page({ params }) {
     await loadToday();
   }
 
-  async function deleteAppt(id) {
-   async function updateStatus(status) {
+async function deleteAppt(id) {
 
-  if (!detailAppt?.id) return;
+  if (!confirm("Termin wirklich löschen?")) return;
+
+  setError("");
+
+  const res = await fetch(`/api/s/${slug}/appointments/${id}`, {
+    method: "DELETE"
+  });
+
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok || data?.error) {
+    setError(data?.error || "Technischer Fehler. Bitte erneut versuchen.");
+    return;
+  }
+
+  showOk("Termin gelöscht.");
+  await loadToday();
+}
+
+async function updateStatus(status) {
+
+  const apptId = detailAppt?.id;
+  if (!apptId) return;
 
   try {
 
-    const res = await fetch(`/api/s/${slug}/appointments/${detailAppt.id}`, {
+    const res = await fetch(`/api/s/${slug}/appointments/${apptId}`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ status })
@@ -425,68 +446,28 @@ export default function Page({ params }) {
     }
 
     setDetailOpen(false);
+    setDetailAppt(null);
+
     await loadToday();
-
-  } catch (e) {
-    setError("Technischer Fehler. Bitte erneut versuchen.");
-  }
-}
- async function updateStatus(status) {
-
-  const apptId = detailAppt?.id;
-  if (!apptId) return;
-
-  try {
-
-    const res = await fetch(`/api/${slug}/appointments/${apptId}`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ status })
-    });
-
-    const data = await res.json().catch(() => ({}));
-
-    if (!res.ok || data?.error) {
-      setError(data?.error || "Technischer Fehler.");
-      return;
-    }
-
-    // state updates outside click stack
-    setTimeout(() => {
-      setDetailOpen(false);
-      setDetailAppt(null);
-      loadToday();
-    }, 0);
 
   } catch (err) {
     console.error("STATUS UPDATE ERROR:", err);
   }
 }
-    if (!confirm("Termin wirklich löschen?")) return;
-    setError("");
-    const res = await fetch(`/api/s/${slug}/appointments/${id}`, { method: "DELETE" });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok || data?.error) {
-      setError(data?.error || "Technischer Fehler. Bitte erneut versuchen.");
-      return;
-    }
-    showOk("Termin gelöscht.");
-    await loadToday();
-  }
 
-  async function saveHours() {
-    setHoursErr("");
-    setHoursOk("");
+async function saveHours() {
+  setHoursErr("");
+  setHoursOk("");
 
-    const payload = {
-      hours: hours.map((h) => ({
-        weekday: h.weekday,
-        open_time: h.open ? (h.open_time ? `${h.open_time}:00` : null) : null,
-        close_time: h.open ? (h.close_time ? `${h.close_time}:00` : null) : null,
-      })),
-    };
+  const payload = {
+    hours: hours.map((h) => ({
+      weekday: h.weekday,
+      open_time: h.open ? (h.open_time ? `${h.open_time}:00` : null) : null,
+      close_time: h.open ? (h.close_time ? `${h.close_time}:00` : null) : null,
+    })),
+  };
 
-    const res = await fetch(`/api/s/${slug}/business-hours`, {
+  const res = await fetch(`/api/s/${slug}/business-hours`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(payload),
