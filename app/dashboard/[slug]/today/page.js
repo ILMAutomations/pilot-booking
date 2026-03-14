@@ -132,20 +132,46 @@ const UI = {
     height: 1,
     background: isHour ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.04)",
   }),
-  appt: {
-  position: "absolute",
-  left: 10,
-  right: 10,
-  borderRadius: 14,
-  border: "1px solid rgba(255,255,255,0.10)",
-  background:
-    "linear-gradient(180deg, rgba(17,24,39,0.92) 0%, rgba(11,18,32,0.92) 100%)",
-  padding: 10,
-  boxShadow: "0 10px 22px rgba(0,0,0,0.35)",
-  display: "flex",
-  flexDirection: "column",
-  gap: 4,
-  minHeight: 70
+  appt: (status) => {
+
+  let border = "rgba(255,255,255,0.10)";
+  let bg = "rgba(17,24,39,0.92)";
+
+  if (status === "confirmed") {
+    border = "rgba(59,130,246,0.9)";
+    bg = "rgba(37,99,235,0.25)";
+  }
+
+  if (status === "completed") {
+    border = "rgba(16,185,129,0.9)";
+    bg = "rgba(16,185,129,0.25)";
+  }
+
+  if (status === "no_show") {
+    border = "rgba(239,68,68,0.9)";
+    bg = "rgba(127,29,29,0.35)";
+  }
+
+  if (status === "cancelled") {
+    border = "rgba(148,163,184,0.6)";
+    bg = "rgba(71,85,105,0.35)";
+  }
+
+  return {
+    position: "absolute",
+    left: 10,
+    right: 10,
+    borderRadius: 14,
+    border: `1px solid ${border}`,
+    background: bg,
+    padding: 10,
+    boxShadow: "0 10px 22px rgba(0,0,0,0.35)",
+    display: "flex",
+    flexDirection: "column",
+    gap: 4,
+    minHeight: 70
+  };
+
 },
   apptTop: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 },
   apptTime: { fontSize: 12, fontWeight: 900 },
@@ -706,7 +732,7 @@ const timeline = useMemo(() => {
                   return (
                     <div
                   key={a.id}
-                  style={{ ...UI.appt, top, height, cursor: "pointer" }}
+                  style={{ ...UI.appt(a.status), top, height, cursor: "pointer" }}
                    onClick={() => openDetail(a)}
                    >
                       <div style={UI.apptTop}>
@@ -714,9 +740,9 @@ const timeline = useMemo(() => {
                           <div style={UI.apptTime}>{time}</div>
                           <div style={UI.apptService}>{a.service_name || "Service"}</div>
                           <div style={UI.apptName}>{a.customer_name || "—"}</div>
-                     <div style={{ fontSize:11, fontWeight:700, color:"#93C5FD" }}>
-                     {a.status}
-                       </div>
+                    <div style={{ fontSize:11, fontWeight:700 }}>
+ {a.status}
+</div>
                         </div>
                         <div style={UI.apptActions}>
                           <button style={UI.miniBtn} onClick={() => openMove(a)}>Verschieben</button>
