@@ -602,8 +602,10 @@ const timeline = useMemo(() => {
 
 </div>
     
-          <div style={UI.tabsRow}>
-  <Link href={`/dashboard/${slug}/today`} style={UI.tab(true)}>Today</Link>
+ <div style={UI.tabsRow}>
+  <Link href={`/dashboard/${slug}/today`} style={UI.tab(true)}>
+    Today
+  </Link>
 
   <Link href={`/dashboard/${slug}/overview`} style={UI.tab(false)}>
     Overview
@@ -611,6 +613,10 @@ const timeline = useMemo(() => {
 
   <Link href={`/dashboard/${slug}/customers`} style={UI.tab(false)}>
     Customers
+  </Link>
+
+  <Link href={`/dashboard/${slug}/services`} style={UI.tab(false)}>
+    Services
   </Link>
 </div>
 
