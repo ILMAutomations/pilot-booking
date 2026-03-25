@@ -360,7 +360,9 @@ export default function Page({ params }) {
   }, [slug]);
 
   const canCreate =
-    !!serviceId && !!startAtLocal && customerName.trim().length > 0;
+  serviceIds.length > 0 &&
+  !!startAtLocal &&
+  customerName.trim().length > 0;
 
   async function createAppointment() {
     setError("");
