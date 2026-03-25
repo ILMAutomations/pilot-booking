@@ -740,6 +740,8 @@ const timeline = useMemo(() => {
 
                 {/* appointments */}
                 {rows.map((a) => {
+                  console.log("TIMELINE SERVICES:", a.services);
+                 
                   const startMin = minFromISO(a.start_at);
                   const endMin = minFromISO(a.end_at);
                   const top = ((startMin - displayStart) / 15) * slotPx;
@@ -757,8 +759,6 @@ const timeline = useMemo(() => {
                       <div style={UI.apptTop}>
                         <div>
                           <div style={UI.apptTime}>{time}</div>
-console.log("TIMELINE SERVICES:", a.services);
-                    
                          <div style={UI.apptService}>
   {a.services && a.services.length > 0
     ? `${a.services[0].name}${a.services.length > 1 ? ` +${a.services.length - 1}` : ""}`
