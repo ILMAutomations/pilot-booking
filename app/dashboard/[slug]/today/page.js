@@ -623,15 +623,72 @@ const timeline = useMemo(() => {
 </div>
 
           <div style={UI.formGrid}>
-            <select
-  multiple
-  style={{ ...UI.input, height: 100 }}
-  value={serviceIds}
-  onChange={(e) => {
-    const values = Array.from(e.target.selectedOptions, o => o.value);
-    setServiceIds(values);
-  }}
->
+  <div style={{
+  border: "1px solid rgba(255,255,255,0.1)",
+  borderRadius: 12,
+  padding: 10,
+  maxHeight: 140,
+  overflowY: "auto"
+}}>
+  {services.map((s) => {
+
+    const checked = serviceIds.includes(s.id);
+
+    return (
+      <label key={s.id} style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        marginBottom: 6,
+        cursor: "pointer"
+      }}>
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={() => {
+            if (checked) {
+              setServiceIds(serviceIds.filter(id => id !== s.id));
+            } else {
+              setServiceIds([...serviceIds, s.id]);
+            }
+          }}
+        />
+
+        <span>
+          {s.name} ({s.duration_min} Min)
+        </span>
+      </label>
+    );
+  })}
+</div>
+
+<div style={{ marginTop: 10, fontSize: 13 }}>
+
+  <b>Ausgewählt:</b>
+
+  {serviceIds.length === 0 && (
+    <div style={{ opacity: 0.6 }}>Keine Services gewählt</div>
+  )}
+
+  {services
+    .filter(s => serviceIds.includes(s.id))
+    .map(s => (
+      <div key={s.id}>
+        • {s.name} ({s.duration_min} min)
+      </div>
+    ))}
+
+  {serviceIds.length > 0 && (
+    <div style={{ marginTop: 6, fontWeight: 700 }}>
+      Gesamt: {
+        services
+          .filter(s => serviceIds.includes(s.id))
+          .reduce((sum, s) => sum + s.duration_min, 0)
+      } min
+    </div>
+  )}
+
+</div>
               <option value="">Service wählen</option>
               {services.map((s) => (
                 <option key={s.id} value={s.id}>
