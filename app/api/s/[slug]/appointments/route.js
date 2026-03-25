@@ -45,19 +45,49 @@ export async function POST(req, { params }) {
     const salon_id = salonRes.rows[0].id;
 
     // ---------- resolve service ----------
-    const serviceRes = await query(
-      `select duration_min
-       from public.services
-       where id = $1
-       limit 1`,
-      [service_id]
-    );
+let totalDuration = 0;
+let finalServiceIds = [];
 
-    if (!serviceRes.rowCount) {
-      return Response.json({ error: "Service not found" }, { status: 404 });
-    }
+if (service_ids && service_ids.length > 0) {
 
-    const duration = Number(serviceRes.rows[0].duration_min);
+  // remove duplicates
+  finalServiceIds = [...new Set(service_ids)];
+
+  const servicesRes = await query(
+    `select duration_min
+     from public.services
+     where id = any($1::uuid[])`,
+    [finalServiceIds]
+  );
+
+  if (!servicesRes.rowCount) {
+    return Response.json({ error: "Services not found" }, { status: 404 });
+  }
+
+  totalDuration = servicesRes.rows.reduce(
+    (sum, s) => sum + Number(s.duration_min),
+    0
+  );
+
+} else {
+
+  // fallback old system
+  finalServiceIds = [service_id];
+
+  const serviceRes = await query(
+    `select duration_min
+     from public.services
+     where id = $1
+     limit 1`,
+    [service_id]
+  );
+
+  if (!serviceRes.rowCount) {
+    return Response.json({ error: "Service not found" }, { status: 404 });
+  }
+
+  totalDuration = Number(serviceRes.rows[0].duration_min);
+}
 
     // ---------- parse time safely ----------
     const start = new Date(start_at);
