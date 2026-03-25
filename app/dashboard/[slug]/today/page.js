@@ -757,6 +757,8 @@ const timeline = useMemo(() => {
                       <div style={UI.apptTop}>
                         <div>
                           <div style={UI.apptTime}>{time}</div>
+console.log("TIMELINE SERVICES:", a.services);
+                    
                          <div style={UI.apptService}>
   {a.services && a.services.length > 0
     ? `${a.services[0].name}${a.services.length > 1 ? ` +${a.services.length - 1}` : ""}`
