@@ -182,9 +182,9 @@ from public.appointments a
 
       end_at: r.end_at,
 
-      services: r.services || [],
-total_duration: r.total_duration || 0,
-total_price: r.total_price || 0,
+services: r.services || [],
+total_duration: Number(r.total_duration || 0),
+total_price: Number(r.total_price || 0),
 
       customer_name: r.customer_name || "",
 
