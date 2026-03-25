@@ -146,7 +146,38 @@ export async function GET(req, { params }) {
 
       end_at: r.end_at,
 
-      service_name: r.service_name || "",
+      services: r.services || [],
+total_duration: r.total_duration || 0,
+total_price: r.total_price || 0,
+      (
+  select json_agg(
+    json_build_object(
+      'name', s.name,
+      'duration', s.duration_min,
+      'price', s.price_cents
+    )
+  )
+  from public.services s
+  where s.id = any(
+    coalesce(a.service_ids, array[a.service_id])
+  )
+) as services,
+
+(
+  select coalesce(sum(s.duration_min),0)
+  from public.services s
+  where s.id = any(
+    coalesce(a.service_ids, array[a.service_id])
+  )
+) as total_duration,
+
+(
+  select coalesce(sum(s.price_cents),0)
+  from public.services s
+  where s.id = any(
+    coalesce(a.service_ids, array[a.service_id])
+  )
+) as total_price
 
       customer_name: r.customer_name || "",
 
