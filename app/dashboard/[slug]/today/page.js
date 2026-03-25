@@ -681,7 +681,8 @@ const timeline = useMemo(() => {
       </div>
     ))}
 
-  {serviceIds.length > 0 && (
+{serviceIds.length > 0 && (
+  <>
     <div style={{ marginTop: 6, fontWeight: 700 }}>
       Gesamt: {
         services
@@ -689,7 +690,17 @@ const timeline = useMemo(() => {
           .reduce((sum, s) => sum + s.duration_min, 0)
       } min
     </div>
-  )}
+
+    <div style={{ fontWeight: 700 }}>
+      Preis: {
+        (services
+          .filter(s => serviceIds.includes(s.id))
+          .reduce((sum, s) => sum + s.price_cents, 0) / 100
+        ).toFixed(2)
+      } €
+    </div>
+  </>
+)}
 
 </div>
 
