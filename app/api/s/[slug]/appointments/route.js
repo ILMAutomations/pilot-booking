@@ -144,7 +144,7 @@ if (service_ids && service_ids.length > 0) {
       `
       insert into public.appointments (
         salon_id,
-        service_id,
+        service_ids,
         start_at,
         end_at,
         customer_name,
@@ -158,7 +158,7 @@ if (service_ids && service_ids.length > 0) {
       `,
       [
         salon_id,
-        service_id,
+        finalServiceIds,
         startISO,
         endISO,
         customer_name ? String(customer_name).trim() : null,
