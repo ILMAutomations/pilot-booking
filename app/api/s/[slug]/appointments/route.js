@@ -22,7 +22,7 @@ export async function POST(req, { params }) {
   internal_note
 } = body;
 
-    if (!service_id || !start_at) {
+   if ((!service_id && (!service_ids || service_ids.length === 0)) || !start_at) {
       return Response.json(
         { error: "service_id and start_at required" },
         { status: 400 }
