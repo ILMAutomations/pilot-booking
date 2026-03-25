@@ -375,15 +375,14 @@ export default function Page({ params }) {
       return;
     }
 
-    const payload = {
-  service_id: serviceId,
+const payload = {
+  service_ids: serviceIds,
   start_at: start.toISOString(),
   customer_name: customerName.trim(),
   customer_phone: phone ? phone.trim() : null,
   customer_email: email ? email.trim() : null,
   internal_note: note ? note.trim() : null,
 };
-
     const res = await fetch(`/api/s/${slug}/appointments`, {
       method: "POST",
       headers: { "content-type": "application/json" },
