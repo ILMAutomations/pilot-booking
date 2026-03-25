@@ -689,13 +689,6 @@ const timeline = useMemo(() => {
   )}
 
 </div>
-              <option value="">Service wählen</option>
-              {services.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name} – ({s.duration_min} Min)
-                </option>
-              ))}
-            </select>
 
             <input
               style={{
