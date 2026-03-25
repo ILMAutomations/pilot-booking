@@ -106,27 +106,63 @@ export async function GET(req, { params }) {
 
     const apptRes = await query(
       `
-      select
-        a.id,
-        a.start_at,
-        a.end_at,
-        a.customer_name,
-        a.customer_phone,
-        a.customer_email,
-        a.internal_note,
-        a.status,
-    (
-  select 
-    case 
-      when count(*) = 1 then min(s.name)
-      else min(s.name) || ' +' || (count(*) - 1)
-    end
-  from public.services s
-  where s.id = any(
-    coalesce(a.service_ids, array[a.service_id])
-  )
-) as service_name
-      from public.appointments a
+select
+  a.id,
+  a.start_at,
+  a.end_at,
+  a.customer_name,
+  a.customer_phone,
+  a.customer_email,
+  a.internal_note,
+  a.status,
+
+  -- 🔹 timeline label
+  (
+    select 
+      case 
+        when count(*) = 1 then min(s.name)
+        else min(s.name) || ' +' || (count(*) - 1)
+      end
+    from public.services s
+    where s.id = any(
+      coalesce(a.service_ids, array[a.service_id])
+    )
+  ) as service_name,
+
+  -- 🔹 FULL SERVICES LIST (NEU)
+  (
+    select json_agg(
+      json_build_object(
+        'name', s.name,
+        'duration', s.duration_min,
+        'price', s.price_cents
+      )
+    )
+    from public.services s
+    where s.id = any(
+      coalesce(a.service_ids, array[a.service_id])
+    )
+  ) as services,
+
+  -- 🔹 TOTAL DURATION
+  (
+    select coalesce(sum(s.duration_min),0)
+    from public.services s
+    where s.id = any(
+      coalesce(a.service_ids, array[a.service_id])
+    )
+  ) as total_duration,
+
+  -- 🔹 TOTAL PRICE
+  (
+    select coalesce(sum(s.price_cents),0)
+    from public.services s
+    where s.id = any(
+      coalesce(a.service_ids, array[a.service_id])
+    )
+  ) as total_price
+
+from public.appointments a
       
       where a.salon_id = $1
         and a.start_at >= $2
