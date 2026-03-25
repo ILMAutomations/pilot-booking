@@ -13,13 +13,14 @@ export async function POST(req, { params }) {
     const body = await req.json();
 
     const {
-      service_id,
-      start_at,
-      customer_name,
-      customer_phone,
-      customer_email,
-      internal_note
-    } = body;
+  service_id,
+  service_ids,
+  start_at,
+  customer_name,
+  customer_phone,
+  customer_email,
+  internal_note
+} = body;
 
     if (!service_id || !start_at) {
       return Response.json(
