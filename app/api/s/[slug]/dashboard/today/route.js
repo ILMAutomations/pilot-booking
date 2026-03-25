@@ -115,9 +115,19 @@ export async function GET(req, { params }) {
         a.customer_email,
         a.internal_note,
         a.status,
-        s.name as service_name
+    (
+  select 
+    case 
+      when count(*) = 1 then min(s.name)
+      else min(s.name) || ' +' || (count(*) - 1)
+    end
+  from public.services s
+  where s.id = any(
+    coalesce(a.service_ids, array[a.service_id])
+  )
+) as service_name
       from public.appointments a
-      left join public.services s on s.id = a.service_id
+      
       where a.salon_id = $1
         and a.start_at >= $2
         and a.start_at < $3
