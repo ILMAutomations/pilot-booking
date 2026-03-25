@@ -622,10 +622,14 @@ const timeline = useMemo(() => {
 
           <div style={UI.formGrid}>
             <select
-              style={UI.input}
-              value={serviceId}
-              onChange={(e) => setServiceId(e.target.value)}
-            >
+  multiple
+  style={{ ...UI.input, height: 100 }}
+  value={serviceIds}
+  onChange={(e) => {
+    const values = Array.from(e.target.selectedOptions, o => o.value);
+    setServiceIds(values);
+  }}
+>
               <option value="">Service wählen</option>
               {services.map((s) => (
                 <option key={s.id} value={s.id}>
