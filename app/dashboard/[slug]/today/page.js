@@ -658,7 +658,7 @@ const timeline = useMemo(() => {
         />
 
         <span>
-          {s.name} ({s.duration_min} Min)
+{s.name} ({s.duration_min} Min • {(s.price_cents / 100).toFixed(2)}€)
         </span>
       </label>
     );
@@ -677,7 +677,7 @@ const timeline = useMemo(() => {
     .filter(s => serviceIds.includes(s.id))
     .map(s => (
       <div key={s.id}>
-        • {s.name} ({s.duration_min} min)
+• {s.name} ({s.duration_min} min • {(s.price_cents / 100).toFixed(2)}€)
       </div>
     ))}
 
