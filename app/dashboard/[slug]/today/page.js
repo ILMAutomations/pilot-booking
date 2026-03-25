@@ -875,7 +875,23 @@ const timeline = useMemo(() => {
 
       <h3 style={{marginBottom:12}}>Appointment</h3>
 
-      <div><b>Service:</b> {detailAppt.service_name}</div>
+      <div style={{marginTop:10}}>
+  <b>Services:</b>
+
+  {detailAppt.services?.map((s, i) => (
+    <div key={i} style={{fontSize:13}}>
+      • {s.name}
+    </div>
+  ))}
+</div>
+
+<div style={{marginTop:10}}>
+  <b>Dauer:</b> {detailAppt.total_duration} min
+</div>
+
+<div>
+  <b>Preis:</b> {(detailAppt.total_price / 100).toFixed(2)} €
+</div>
       <div><b>Name:</b> {detailAppt.customer_name}</div>
 
       {detailAppt.customer_phone && (
