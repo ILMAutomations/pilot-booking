@@ -109,7 +109,7 @@ if (service_ids && service_ids.length > 0) {
       );
     }
 
-    const end = new Date(start.getTime() + duration * 60000);
+    const end = new Date(start.getTime() + totalDuration * 60000);
 
     const startISO = start.toISOString();
     const endISO = end.toISOString();
