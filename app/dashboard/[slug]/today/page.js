@@ -630,7 +630,10 @@ const timeline = useMemo(() => {
   maxHeight: 140,
   overflowY: "auto"
 }}>
-  {services.map((s) => {
+  {services
+  .slice()
+  .sort((a, b) => a.duration_min - b.duration_min)
+  .map((s) => {
 
     const checked = serviceIds.includes(s.id);
 
