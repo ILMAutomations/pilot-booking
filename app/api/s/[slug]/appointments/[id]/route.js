@@ -210,10 +210,11 @@ if (new_status) {
 
     await query(
       `update public.appointments
-       set start_at = $1,
-           end_at = $2,
-           updated_at = now()
-       where salon_id = $3 and id = $4`,
+set start_at = $1,
+    end_at = $2,
+    employee_id = coalesce($5, employee_id),
+    updated_at = now()
+where salon_id = $3 and id = $4`,
       [newStart.toISOString(), newEnd.toISOString(), salon.id, id]
     );
 
