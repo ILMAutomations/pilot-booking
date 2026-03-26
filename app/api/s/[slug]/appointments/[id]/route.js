@@ -123,7 +123,8 @@ export async function PATCH(req, { params }) {
     if (!salon) return bad("Salon nicht gefunden.");
 
     const body = await req.json().catch(() => ({}));
-    const employee_id = body?.employee_id;
+const hasEmployee = Object.prototype.hasOwnProperty.call(body, "employee_id");
+const employee_id = body?.employee_id;
 
 const status = body?.status;
 
