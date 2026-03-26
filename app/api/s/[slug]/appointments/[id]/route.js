@@ -209,21 +209,44 @@ if (new_status) {
     const overlap = await hasOverlap({ salon_id: salon.id, new_start: newStart, new_end: newEnd, exclude_id: id });
     if (overlap) return conflict("Zeit ist bereits belegt. Bitte andere Uhrzeit wählen.");
 
-    await query(
-      `update public.appointments
-set start_at = $1,
-    end_at = $2,
-    employee_id = coalesce($5, employee_id),
-    updated_at = now()
-where salon_id = $3 and id = $4`,
-[
-  newStart.toISOString(),
-  newEnd.toISOString(),
-  salon.id,
-  id,
-  employee_id ?? null
-]
-    );
+let updateQuery;
+let params;
+
+if (hasEmployee) {
+  updateQuery = `
+    update public.appointments
+    set start_at = $1,
+        end_at = $2,
+        employee_id = $5,
+        updated_at = now()
+    where salon_id = $3 and id = $4
+  `;
+
+  params = [
+    newStart.toISOString(),
+    newEnd.toISOString(),
+    salon.id,
+    id,
+    employee_id ?? null
+  ];
+} else {
+  updateQuery = `
+    update public.appointments
+    set start_at = $1,
+        end_at = $2,
+        updated_at = now()
+    where salon_id = $3 and id = $4
+  `;
+
+  params = [
+    newStart.toISOString(),
+    newEnd.toISOString(),
+    salon.id,
+    id
+  ];
+}
+
+await query(updateQuery, params);
 
     return json({ ok: true });
   } catch (e) {
