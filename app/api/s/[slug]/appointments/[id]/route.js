@@ -151,6 +151,8 @@ if (status) {
     if (!appt) return bad("Termin nicht gefunden.");
     // ---- STATUS UPDATE ----
 
+const new_status = body?.status;
+
 if (new_status) {
 
   const allowed = ["booked", "completed", "no-show", "no_show", "cancelled"];
