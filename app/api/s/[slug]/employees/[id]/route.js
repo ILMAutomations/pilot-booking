@@ -1,10 +1,7 @@
-import { query } from '@/lib/db';
+import { query } from "@/lib/db";
 
-export async function PATCH(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
-  const { id } = params;
+export async function PATCH(req, context) {
+  const { id } = context.params;
   const body = await req.json();
 
   const { name, active } = body;
@@ -21,11 +18,8 @@ export async function PATCH(
   return Response.json({ ok: true });
 }
 
-export async function DELETE(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
-  const { id } = params;
+export async function DELETE(req, context) {
+  const { id } = context.params;
 
   await query(
     `delete from employees where id = $1`,
