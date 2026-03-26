@@ -1,5 +1,9 @@
-// GET /api/s/[slug]/employees
-export async function GET(req, { params }) {
+import { query } from '@/lib/db';
+
+export async function GET(
+  req: Request,
+  { params }: { params: { slug: string } }
+) {
   const { slug } = params;
 
   const salon = await query(
@@ -23,7 +27,11 @@ export async function GET(req, { params }) {
 
   return Response.json({ rows: res.rows });
 }
-export async function POST(req, { params }) {
+
+export async function POST(
+  req: Request,
+  { params }: { params: { slug: string } }
+) {
   const { slug } = params;
   const body = await req.json();
 
@@ -37,6 +45,10 @@ export async function POST(req, { params }) {
     `select id from salons where slug = $1`,
     [slug]
   );
+
+  if (!salon.rows[0]) {
+    return Response.json({ error: 'Salon not found' }, { status: 404 });
+  }
 
   const salon_id = salon.rows[0].id;
 
