@@ -1,7 +1,11 @@
 import { query } from "@/lib/db";
 
 export async function GET(req, context) {
-  const { slug } = context.params;
+  const slug = context?.params?.slug;
+
+  if (!slug) {
+    return Response.json({ error: "Missing slug" }, { status: 400 });
+  }
 
   const salon = await query(
     `select id from salons where slug = $1`,
@@ -26,9 +30,13 @@ export async function GET(req, context) {
 }
 
 export async function POST(req, context) {
-  const { slug } = context.params;
-  const body = await req.json();
+  const slug = context?.params?.slug;
 
+  if (!slug) {
+    return Response.json({ error: "Missing slug" }, { status: 400 });
+  }
+
+  const body = await req.json();
   const { name } = body;
 
   if (!name) {
