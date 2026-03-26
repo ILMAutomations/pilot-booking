@@ -172,7 +172,28 @@ if (new_status) {
   return json({ ok: true });
 }
 
-    const dur = Number(appt.service_duration_min || 0);
+let dur = 0;
+
+if (appt.service_ids && appt.service_ids.length > 0) {
+  const servicesRes = await query(
+    `select duration_min
+     from public.services
+     where id = any($1::uuid[])`,
+    [appt.service_ids]
+  );
+
+  dur = servicesRes.rows.reduce(
+    (sum, s) => sum + Number(s.duration_min),
+    0
+  );
+} else if (appt.service_duration_min) {
+  // fallback legacy
+  dur = Number(appt.service_duration_min);
+}
+
+if (!Number.isFinite(dur) || dur <= 0) {
+  return bad("Service-Dauer fehlt.");
+}
     if (!Number.isFinite(dur) || dur <= 0) return bad("Service-Dauer fehlt.");
 
     const newEnd = new Date(newStart.getTime() + dur * 60 * 1000);
