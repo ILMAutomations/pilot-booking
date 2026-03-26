@@ -112,7 +112,7 @@ function conflict(msg) {
 }
 
 // ---- PATCH: reschedule ----
-export async function PATCH(req, { params }) {
+export async function PATCH(req, context) {
   try {
 const slug = context?.params?.slug;
 const id = context?.params?.id;
