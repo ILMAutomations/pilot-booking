@@ -12,14 +12,15 @@ export async function POST(req, { params }) {
 
     const body = await req.json();
 
-    const {
+const {
   service_id,
   service_ids,
   start_at,
   customer_name,
   customer_phone,
   customer_email,
-  internal_note
+  internal_note,
+  employee_id
 } = body;
 
    if ((!service_id && (!service_ids || service_ids.length === 0)) || !start_at) {
