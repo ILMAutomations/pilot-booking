@@ -114,8 +114,8 @@ function conflict(msg) {
 // ---- PATCH: reschedule ----
 export async function PATCH(req, { params }) {
   try {
-    const slug = params?.slug;
-    const id = params?.id;
+const slug = context?.params?.slug;
+const id = context?.params?.id;
 
     if (!slug || !id || !isUuid(id)) return bad("Ungültige Anfrage.");
 
