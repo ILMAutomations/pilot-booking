@@ -215,7 +215,13 @@ set start_at = $1,
     employee_id = coalesce($5, employee_id),
     updated_at = now()
 where salon_id = $3 and id = $4`,
-      [newStart.toISOString(), newEnd.toISOString(), salon.id, id]
+[
+  newStart.toISOString(),
+  newEnd.toISOString(),
+  salon.id,
+  id,
+  employee_id ?? null
+]
     );
 
     return json({ ok: true });
