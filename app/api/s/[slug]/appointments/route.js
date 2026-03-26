@@ -158,16 +158,17 @@ insert into public.appointments (
       values ($1,$2,$3,$4,$5,$6,$7,$8,'confirmed')
       returning id
       `,
-      [
-        salon_id,
-        finalServiceIds,
-        startISO,
-        endISO,
-        customer_name ? String(customer_name).trim() : null,
-        customer_phone ? String(customer_phone).trim() : null,
-        customer_email ? String(customer_email).trim() : null,
-        internal_note ? String(internal_note).trim() : null
-      ]
+[
+  salon_id,
+  finalServiceIds,
+  startISO,
+  endISO,
+  customer_name ? String(customer_name).trim() : null,
+  customer_phone ? String(customer_phone).trim() : null,
+  customer_email ? String(customer_email).trim() : null,
+  internal_note ? String(internal_note).trim() : null,
+  employee_id ?? null
+]
     );
 
     await query(`COMMIT`);
