@@ -155,7 +155,7 @@ insert into public.appointments (
   status,
   employee_id
 )
-      values ($1,$2,$3,$4,$5,$6,$7,$8,'confirmed')
+values ($1,$2,$3,$4,$5,$6,$7,$8,'confirmed',$9)
       returning id
       `,
 [
