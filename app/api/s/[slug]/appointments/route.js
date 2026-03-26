@@ -190,9 +190,11 @@ values ($1,$2,$3,$4,$5,$6,$7,$8,'confirmed',$9)
       message: error?.message,
     });
 
-    return Response.json(
-      { error: "Technischer Fehler." },
-      { status: 500 }
-    );
+console.error("POST APPOINTMENT ERROR:", error);
+
+return Response.json(
+  { error: error?.message || "Technischer Fehler." },
+  { status: 500 }
+);
   }
 }
