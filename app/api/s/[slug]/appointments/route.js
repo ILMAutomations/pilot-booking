@@ -1,6 +1,6 @@
 import { query } from "@/lib/db";
 
-export async function POST(req, { params }) {
+export async function PATCH(req, context) {
 
   const slug = params?.slug;
 
