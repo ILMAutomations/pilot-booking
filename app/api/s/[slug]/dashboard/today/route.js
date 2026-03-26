@@ -115,6 +115,7 @@ select
   a.customer_email,
   a.internal_note,
   a.status,
+  e.name as employee_name,
 
   -- 🔹 timeline label
   (
@@ -163,6 +164,7 @@ select
   ) as total_price
 
 from public.appointments a
+left join employees e on e.id = a.employee_id
       
       where a.salon_id = $1
         and a.start_at >= $2
