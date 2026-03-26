@@ -143,17 +143,18 @@ if (service_ids && service_ids.length > 0) {
     // ---------- insert appointment ----------
     const insert = await query(
       `
-      insert into public.appointments (
-        salon_id,
-        service_ids,
-        start_at,
-        end_at,
-        customer_name,
-        customer_phone,
-        customer_email,
-        internal_note,
-        status
-      )
+insert into public.appointments (
+  salon_id,
+  service_ids,
+  start_at,
+  end_at,
+  customer_name,
+  customer_phone,
+  customer_email,
+  internal_note,
+  status,
+  employee_id
+)
       values ($1,$2,$3,$4,$5,$6,$7,$8,'confirmed')
       returning id
       `,
