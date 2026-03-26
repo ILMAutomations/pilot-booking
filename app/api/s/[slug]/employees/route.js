@@ -1,10 +1,7 @@
-import { query } from '@/lib/db';
+import { query } from "@/lib/db";
 
-export async function GET(
-  req: Request,
-  { params }: { params: { slug: string } }
-) {
-  const { slug } = params;
+export async function GET(req, context) {
+  const { slug } = context.params;
 
   const salon = await query(
     `select id from salons where slug = $1`,
@@ -12,7 +9,7 @@ export async function GET(
   );
 
   if (!salon.rows[0]) {
-    return Response.json({ error: 'Salon not found' }, { status: 404 });
+    return Response.json({ error: "Salon not found" }, { status: 404 });
   }
 
   const salon_id = salon.rows[0].id;
@@ -28,17 +25,14 @@ export async function GET(
   return Response.json({ rows: res.rows });
 }
 
-export async function POST(
-  req: Request,
-  { params }: { params: { slug: string } }
-) {
-  const { slug } = params;
+export async function POST(req, context) {
+  const { slug } = context.params;
   const body = await req.json();
 
   const { name } = body;
 
   if (!name) {
-    return Response.json({ error: 'name required' }, { status: 400 });
+    return Response.json({ error: "name required" }, { status: 400 });
   }
 
   const salon = await query(
@@ -47,7 +41,7 @@ export async function POST(
   );
 
   if (!salon.rows[0]) {
-    return Response.json({ error: 'Salon not found' }, { status: 404 });
+    return Response.json({ error: "Salon not found" }, { status: 404 });
   }
 
   const salon_id = salon.rows[0].id;
