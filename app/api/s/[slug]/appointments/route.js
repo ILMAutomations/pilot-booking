@@ -217,7 +217,8 @@ if (!(startMin >= openMin && endMin <= closeMin)) {
 
     // ---------- overlap protection ----------
     console.log("EMPLOYEE_ID:", employee_id);
-let overlap;
+
+    let overlap;
 
 if (employee_id) {
 
