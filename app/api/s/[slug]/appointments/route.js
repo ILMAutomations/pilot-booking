@@ -111,6 +111,83 @@ if (service_ids && service_ids.length > 0) {
     }
 
     const end = new Date(start.getTime() + totalDuration * 60000);
+    // ---------- business hours check (wie PATCH) ----------
+
+// helper functions (falls nicht vorhanden, oben im File einfügen)
+function getLocalParts(date, timeZone) {
+  const fmt = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    weekday: "short",
+  });
+  const parts = fmt.formatToParts(date);
+  const map = {};
+  for (const p of parts) map[p.type] = p.value;
+
+  const wdMap = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 };
+
+  return {
+    hh: Number(map.hour),
+    mm: Number(map.minute),
+    weekday: wdMap[map.weekday] ?? null,
+  };
+}
+
+function timeToMin(t) {
+  if (!t) return null;
+  const [hh, mm] = String(t).split(":");
+  return Number(hh) * 60 + Number(mm);
+}
+
+// timezone aus salon
+const tz = salonRes.rows[0].timezone || "Europe/Berlin";
+
+// local parts berechnen
+const lp = getLocalParts(start, tz);
+const endParts = getLocalParts(end, tz);
+
+// business hours laden
+const bh = await query(
+  `select open_time, close_time
+   from public.business_hours
+   where salon_id = $1 and weekday = $2
+   limit 1`,
+  [salon_id, lp.weekday]
+);
+
+if (!bh.rowCount) {
+  return Response.json(
+    { error: "Außerhalb der Öffnungszeiten." },
+    { status: 400 }
+  );
+}
+
+const openMin = timeToMin(bh.rows[0].open_time);
+const closeMin = timeToMin(bh.rows[0].close_time);
+
+const startMin = lp.hh * 60 + lp.mm;
+const endMin = endParts.hh * 60 + endParts.mm;
+
+// kein über Mitternacht
+if (endParts.weekday !== lp.weekday) {
+  return Response.json(
+    { error: "Termin darf nicht über Mitternacht gehen." },
+    { status: 400 }
+  );
+}
+
+// außerhalb Öffnungszeiten
+if (!(startMin >= openMin && endMin <= closeMin)) {
+  return Response.json(
+    { error: "Außerhalb der Öffnungszeiten." },
+    { status: 400 }
+  );
+} 
 
     const startISO = start.toISOString();
     const endISO = end.toISOString();
