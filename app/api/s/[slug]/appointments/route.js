@@ -215,10 +215,10 @@ if (!(startMin >= openMin && endMin <= closeMin)) {
 
 }
 
-    // ---------- overlap protection ----------
-    console.log("EMPLOYEE_ID:", employee_id);
+// ---------- overlap protection ----------
+console.log("EMPLOYEE_ID:", employee_id);
 
-    let overlap;
+let overlap;
 
 if (employee_id) {
 
@@ -260,36 +260,13 @@ if (employee_id) {
 
 }
 
-  // 🔹 legacy global block
-  overlap = await query(
-    `
-    select id
-    from public.appointments
-    where salon_id = $1
-    and status <> 'cancelled'
-    and start_at < $2
-    and end_at > $3
-    limit 1
-    `,
-    [salon_id, endISO, startISO]
-  );
-
-}
-
 if (overlap.rowCount) {
   await query(`ROLLBACK`);
   return Response.json(
     { error: "Slot already booked" },
     { status: 409 }
   );
-}{
-      await query(`ROLLBACK`);
-      return Response.json(
-        { error: "Slot already booked" },
-        { status: 409 }
-      );
-    }
-
+}
     // ---------- insert appointment ----------
     const insert = await query(
       `
