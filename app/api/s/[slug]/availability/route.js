@@ -205,18 +205,49 @@ for (const a of appointments) {
       const slotStart = m;
       const slotEnd = m + duration;
 
-      let overlap = false;
+// 🔹 zuerst global check
+let globalBlocked = false;
 
-      for (const a of appts) {
-        if (slotStart < a.end && slotEnd > a.start) {
-          overlap = true;
-          break;
-        }
-      }
+for (const a of globalAppts) {
+  if (slotStart < a.end && slotEnd > a.start) {
+    globalBlocked = true;
+    break;
+  }
+}
 
-      if (!overlap) {
-        slots.push(minToTime(slotStart));
-      }
+if (globalBlocked) continue;
+
+// 🔹 jetzt pro employee prüfen
+const availableEmployees = [];
+
+for (const e of employees) {
+
+  const list = employeeAppts[e.id] || [];
+
+  let blocked = false;
+
+  for (const a of list) {
+    if (slotStart < a.end && slotEnd > a.start) {
+      blocked = true;
+      break;
+    }
+  }
+
+  if (!blocked) {
+    availableEmployees.push({
+      id: e.id,
+      name: e.name
+    });
+  }
+}
+
+// 🔹 wenn mindestens 1 Mitarbeiter frei → Slot gültig
+if (availableEmployees.length > 0) {
+  slots.push({
+    time: minToTime(slotStart),
+    employees: availableEmployees
+  });
+}
 
     }
 
