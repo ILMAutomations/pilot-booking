@@ -293,7 +293,7 @@ export default function Page({ params }) {
   const [moveId, setMoveId] = useState("");
   const [moveStart, setMoveStart] = useState("");
 function openDetail(appt) {
-  console.log("APPT DATA FULL:", JSON.stringify(appt, null, 2));
+  console.log("APPT DATA:", appt);
   setDetailAppt(appt);
   setDetailOpen(true);
 } 
