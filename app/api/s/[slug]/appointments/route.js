@@ -216,9 +216,14 @@ if (!(startMin >= openMin && endMin <= closeMin)) {
 }
 
     // ---------- overlap protection ----------
+    console.log("EMPLOYEE_ID:", employee_id);
 let overlap;
 
 if (employee_id) {
+
+  console.log("CHECK: EMPLOYEE OVERLAP");} else {
+
+  console.log("CHECK: GLOBAL OVERLAP");
 
   // 🔹 nur dieser Mitarbeiter
   overlap = await query(
