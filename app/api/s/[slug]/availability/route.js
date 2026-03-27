@@ -126,6 +126,15 @@ export async function GET(req, { params }) {
     const closeMin = timeToMin(bh.close_time);
 
     const appointments = await getAppointmentsForDay(salon.id, date);
+    // 🔹 employees laden
+const employeesRes = await query(
+  `select id, name
+   from public.employees
+   where salon_id = $1 and active = true`,
+  [salon.id]
+);
+
+const employees = employeesRes.rows || [];
 
     const appts = appointments.map(a => {
 
