@@ -292,12 +292,11 @@ export default function Page({ params }) {
   const [detailAppt, setDetailAppt] = useState(null);
   const [moveId, setMoveId] = useState("");
   const [moveStart, setMoveStart] = useState("");
-  function openDetail(appt) {
-  console.log("APPT DATA:", appt); 
+function openDetail(appt) {
+  console.log("APPT DATA FULL:", JSON.stringify(appt, null, 2));
   setDetailAppt(appt);
   setDetailOpen(true);
-}
-
+} 
   // business hours
   const [hours, setHours] = useState(() =>
     WEEKDAYS.map((d) => ({ weekday: d.w, open: false, open_time: "", close_time: "" }))
