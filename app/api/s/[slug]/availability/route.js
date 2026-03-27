@@ -136,31 +136,47 @@ const employeesRes = await query(
 
 const employees = employeesRes.rows || [];
 
-    const appts = appointments.map(a => {
+const globalAppts = [];
+const employeeAppts = {};
 
-      const start = new Date(a.start_at);
-      const end = new Date(a.end_at);
+for (const e of employees) {
+  employeeAppts[e.id] = [];
+}
 
-      const startLocal = start.toLocaleTimeString("en-GB", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-        timeZone: tz
-      });
+for (const a of appointments) {
 
-      const endLocal = end.toLocaleTimeString("en-GB", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-        timeZone: tz
-      });
+  const start = new Date(a.start_at);
+  const end = new Date(a.end_at);
 
-      return {
-        start: timeToMin(startLocal),
-        end: timeToMin(endLocal)
-      };
+  const startLocal = start.toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: tz
+  });
 
-    });
+  const endLocal = end.toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: tz
+  });
+
+  const obj = {
+    start: timeToMin(startLocal),
+    end: timeToMin(endLocal)
+  };
+
+  if (!a.employee_id) {
+    globalAppts.push(obj);
+  } else {
+    if (!employeeAppts[a.employee_id]) {
+      employeeAppts[a.employee_id] = [];
+    }
+    employeeAppts[a.employee_id].push(obj);
+  }
+
+} 
 
     const slots = [];
 
