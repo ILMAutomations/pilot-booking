@@ -197,6 +197,8 @@ total_price: Number(r.total_price || 0),
       internal_note: r.internal_note || "",
 
       status: normalizeStatus(r.status)
+        
+      employee_name: r.employee_name,
 
     }));
 
