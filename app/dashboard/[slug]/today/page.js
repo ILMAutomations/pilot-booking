@@ -947,11 +947,15 @@ const timeline = useMemo(() => {
       <div style={{marginTop:10}}>
   <b>Services:</b>
 
-  {detailAppt.services?.map((s, i) => (
+{Array.isArray(detailAppt.services) && detailAppt.services.map((s, i) => {
+  if (!s || typeof s.name !== "string") return null;
+
+  return (
     <div key={i} style={{fontSize:13}}>
       • {s.name}
     </div>
-  ))}
+  );
+})} 
 </div>
 
 <div style={{marginTop:10}}>
