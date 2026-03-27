@@ -61,7 +61,7 @@ async function getBusinessHoursForWeekday(salon_id, weekday) {
 
 async function getAppointmentsForDay(salon_id, date) {
   const r = await query(
-    `select start_at, end_at
+    `select start_at, end_at, employee_id
      from public.appointments
      where salon_id = $1
      and date(start_at) = $2
