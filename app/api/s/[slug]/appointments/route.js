@@ -195,21 +195,71 @@ if (!(startMin >= openMin && endMin <= closeMin)) {
     // ---------- transaction ----------
     await query(`BEGIN`);
 
-    // ---------- overlap protection ----------
-    const overlap = await query(
-      `
-      select id
-      from public.appointments
-      where salon_id = $1
-      and status <> 'cancelled'
-      and start_at < $2
-      and end_at > $3
-      limit 1
-      `,
-      [salon_id, endISO, startISO]
-    );
+    if (employee_id) {
 
-    if (overlap.rowCount) {
+  const empCheck = await query(
+    `select id
+     from public.employees
+     where id = $1 and salon_id = $2 and active = true
+     limit 1`,
+    [employee_id, salon_id]
+  );
+
+  if (!empCheck.rowCount) {
+    await query(`ROLLBACK`);
+    return Response.json(
+      { error: "Mitarbeiter ungültig" },
+      { status: 400 }
+    );
+  }
+
+}
+
+    // ---------- overlap protection ----------
+let overlap;
+
+if (employee_id) {
+
+  // 🔹 nur dieser Mitarbeiter
+  overlap = await query(
+    `
+    select id
+    from public.appointments
+    where salon_id = $1
+    and status <> 'cancelled'
+    and employee_id = $2
+    and start_at < $3
+    and end_at > $4
+    limit 1
+    `,
+    [salon_id, employee_id, endISO, startISO]
+  );
+
+} else {
+
+  // 🔹 legacy global block
+  overlap = await query(
+    `
+    select id
+    from public.appointments
+    where salon_id = $1
+    and status <> 'cancelled'
+    and start_at < $2
+    and end_at > $3
+    limit 1
+    `,
+    [salon_id, endISO, startISO]
+  );
+
+}
+
+if (overlap.rowCount) {
+  await query(`ROLLBACK`);
+  return Response.json(
+    { error: "Slot already booked" },
+    { status: 409 }
+  );
+}{
       await query(`ROLLBACK`);
       return Response.json(
         { error: "Slot already booked" },
