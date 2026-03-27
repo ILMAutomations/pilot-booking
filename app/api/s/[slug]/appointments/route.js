@@ -221,18 +221,18 @@ let overlap;
 
 if (employee_id) {
 
-  console.log("CHECK: EMPLOYEE OVERLAP");} else {
+  console.log("CHECK: EMPLOYEE OVERLAP", employee_id);
 
-  console.log("CHECK: GLOBAL OVERLAP");
-
-  // 🔹 nur dieser Mitarbeiter
   overlap = await query(
     `
     select id
     from public.appointments
     where salon_id = $1
     and status <> 'cancelled'
-    and employee_id = $2
+    and (
+      employee_id = $2
+      OR employee_id IS NULL
+    )
     and start_at < $3
     and end_at > $4
     limit 1
@@ -241,6 +241,23 @@ if (employee_id) {
   );
 
 } else {
+
+  console.log("CHECK: GLOBAL OVERLAP");
+
+  overlap = await query(
+    `
+    select id
+    from public.appointments
+    where salon_id = $1
+    and status <> 'cancelled'
+    and start_at < $2
+    and end_at > $3
+    limit 1
+    `,
+    [salon_id, endISO, startISO]
+  );
+
+}
 
   // 🔹 legacy global block
   overlap = await query(
