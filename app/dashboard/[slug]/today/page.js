@@ -368,6 +368,7 @@ useEffect(() => {
   loadToday();
   loadHours();
   loadEmployees();
+  }, [slug]);
 
   const canCreate =
   serviceIds.length > 0 &&
