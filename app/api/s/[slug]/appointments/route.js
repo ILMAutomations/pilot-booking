@@ -91,7 +91,7 @@ if (service_ids && service_ids.length > 0) {
 }
 
     // ---------- parse time safely ----------
-const start = new Date(start_at + "Z");
+const start = new Date(start_at);
 
     if (Number.isNaN(start.getTime())) {
       return Response.json(
