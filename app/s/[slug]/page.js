@@ -80,8 +80,9 @@ async function loadSlots(serviceId, date) {
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({
-        service_id: selectedService.id,
+body: JSON.stringify({
+  service_id: selectedService.id,
+  employee_id: selectedEmployee,
         start_at,
         customer_name: name,
         customer_phone: phone,
