@@ -548,9 +548,9 @@ const timeline = useMemo(() => {
   return marks;
 }, [displayStart, displayEnd]);
 
-  function minFromISO(iso) {
+function minFromISO(iso) {
   const d = new Date(iso);
-  return d.getHours() * 60 + d.getMinutes();
+  return d.getUTCHours() * 60 + d.getUTCMinutes();
 }
 
   if (!slug) return null;
