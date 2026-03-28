@@ -31,11 +31,17 @@ export default function BookingPage({ params }) {
 
   const salonName = formatSalonName(slug);
 
-  useEffect(() => {
-    fetch(`/api/s/${slug}/services`)
-      .then(res => res.json())
-      .then(data => setServices(data.services || []));
-  }, [slug]);
+useEffect(() => {
+
+  fetch(`/api/s/${slug}/services`)
+    .then(res => res.json())
+    .then(data => setServices(data.services || []));
+
+  fetch(`/api/s/${slug}/employees`)
+    .then(res => res.json())
+    .then(data => setEmployees(data.rows || []));
+
+}, [slug]);
 
   async function loadSlots(serviceId, date) {
 
