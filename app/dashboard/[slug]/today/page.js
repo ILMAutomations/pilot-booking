@@ -632,7 +632,44 @@ const timeline = useMemo(() => {
   </Link>
 </div>
 
-          <div style={UI.formGrid}>
+  <div style={UI.formGrid}>
+
+ <div style={{
+    border: "1px solid rgba(255,255,255,0.1)",
+    borderRadius: 12,
+    padding: 10,
+    marginBottom: 10
+  }}>
+    <div style={{ fontWeight: 700, marginBottom: 6 }}>
+      Mitarbeiter wählen
+    </div>
+
+    {employees.length === 0 && (
+      <div style={{ fontSize: 12, opacity: 0.6 }}>
+        Keine Mitarbeiter vorhanden
+      </div>
+    )}
+
+    {employees.map(emp => (
+      <label key={emp.id} style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        marginBottom: 6,
+        cursor: "pointer"
+      }}>
+        <input
+          type="radio"
+          name="employee"
+          checked={selectedEmployee === emp.id}
+          onChange={() => setSelectedEmployee(emp.id)}
+        />
+        <span>{emp.name}</span>
+      </label>
+    ))}
+  </div>
+
+     
   <div style={{
   border: "1px solid rgba(255,255,255,0.1)",
   borderRadius: 12,
