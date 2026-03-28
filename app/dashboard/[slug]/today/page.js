@@ -330,6 +330,15 @@ function openDetail(appt) {
     setToday(data);
   }
 
+async function loadEmployees() {
+  const res = await fetch(`/api/s/${slug}/employees`, { cache: "no-store" });
+  const data = await res.json().catch(() => ({}));
+
+  if (res.ok && Array.isArray(data.rows)) {
+    setEmployees(data.rows);
+  }
+}
+ 
   async function loadHours() {
     setHoursErr("");
     const res = await fetch(`/api/s/${slug}/business-hours`, { cache: "no-store" });
