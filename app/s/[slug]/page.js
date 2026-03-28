@@ -15,6 +15,8 @@ export default function BookingPage({ params }) {
   const slug = params.slug;
 
   const [services, setServices] = useState([]);
+  const [employees, setEmployees] = useState([]);
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [selectedService, setSelectedService] = useState(null);
 
   const [date, setDate] = useState("");
