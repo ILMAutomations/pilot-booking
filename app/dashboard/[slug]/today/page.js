@@ -273,6 +273,8 @@ export default function Page({ params }) {
   const slug = params?.slug;
 
   const [services, setServices] = useState([]);
+  const [employees, setEmployees] = useState([]);
+  const [selectedEmployee, setSelectedEmployee] = useState("");
   const [serviceIds, setServiceIds] = useState([]);
   const [startAtLocal, setStartAtLocal] = useState("");
 
