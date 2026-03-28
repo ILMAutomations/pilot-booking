@@ -362,13 +362,12 @@ async function loadEmployees() {
     setHours(next);
   }
 
-  useEffect(() => {
-    if (!slug) return;
-    loadServices();
-    loadToday();
-    loadHours();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slug]);
+useEffect(() => {
+  if (!slug) return;
+  loadServices();
+  loadToday();
+  loadHours();
+  loadEmployees();
 
   const canCreate =
   serviceIds.length > 0 &&
