@@ -288,10 +288,11 @@ body: JSON.stringify({
         <>
 
           <button
-            onClick={()=>{
-              setDate("");
-              setSlots([]);
-            }}
+onClick={()=>{
+  setDate("");
+  setSlots([]);
+  setSelectedEmployee(null);
+}}
             style={{marginBottom:12}}
           >
             ← Zurück
