@@ -204,6 +204,48 @@ body: JSON.stringify({
         </>
       )}
 
+
+{/* EMPLOYEE STEP */}
+
+{selectedService && !selectedEmployee && (
+
+  <>
+    <button
+      onClick={()=>setSelectedService(null)}
+      style={{marginBottom:12}}
+    >
+      ← Zurück
+    </button>
+
+    <h2>Mitarbeiter wählen</h2>
+
+    {employees.length === 0 && (
+      <p>Keine Mitarbeiter verfügbar.</p>
+    )}
+
+    {employees.map(emp => (
+
+      <button
+        key={emp.id}
+        onClick={()=>setSelectedEmployee(emp.id)}
+        style={{
+          width:"100%",
+          padding:14,
+          marginBottom:10,
+          borderRadius:8,
+          border:"1px solid #ddd",
+          background:"#fff",
+          textAlign:"left"
+        }}
+      >
+        {emp.name}
+      </button>
+
+    ))}
+
+  </>
+)}
+
       {/* DATE STEP */}
 
       {selectedService && !date && (
