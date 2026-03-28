@@ -230,10 +230,7 @@ if (employee_id) {
     from public.appointments
     where salon_id = $1
     and status <> 'cancelled'
-    and (
-      employee_id = $2
-      OR employee_id IS NULL
-    )
+    and employee_id = $2
     and start_at < $3
     and end_at > $4
     limit 1
