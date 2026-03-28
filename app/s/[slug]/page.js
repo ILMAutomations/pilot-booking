@@ -248,7 +248,7 @@ body: JSON.stringify({
 
       {/* DATE STEP */}
 
-      {selectedService && !date && (
+{selectedService && selectedEmployee && !date && (
         <>
 
           <button
