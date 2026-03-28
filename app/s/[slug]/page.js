@@ -43,16 +43,33 @@ useEffect(() => {
 
 }, [slug]);
 
-  async function loadSlots(serviceId, date) {
+async function loadSlots(serviceId, date) {
 
-    const res = await fetch(
-      `/api/s/${slug}/availability?service_id=${serviceId}&date=${date}`
-    );
+  const res = await fetch(
+    `/api/s/${slug}/availability?service_id=${serviceId}&date=${date}`
+  );
 
-    const data = await res.json();
+  const data = await res.json();
 
-    setSlots(data.slots || []);
+  let result = data.slots || [];
+
+  // 🔥 FILTER NACH MITARBEITER
+  if (selectedEmployee) {
+    result = result
+      .filter(slot =>
+        Array.isArray(slot.employees) &&
+        slot.employees.some(e => e.id === selectedEmployee)
+      )
+      .map(slot => slot.time);
   }
+
+  // fallback (alte Struktur)
+  if (typeof result[0] === "string") {
+    setSlots(result);
+  } else {
+    setSlots(result.map(s => s.time));
+  }
+}
 
   async function book() {
 
