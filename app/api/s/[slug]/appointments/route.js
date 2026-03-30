@@ -53,14 +53,14 @@ if (service_ids && service_ids.length > 0) {
 
 finalServiceIds = [...new Set(service_ids)];
 
-const servicesRes = await query(
-`
-select duration_min
-from public.services
-where salon_id = $1
-and id = any($2)
-`,
-[salon_id, service_ids]
+const serviceRes = await query(
+  `
+  select duration_min
+  from public.services
+  where salon_id = $1 and id = $2
+  limit 1
+  `,
+  [salon_id, service_id]
 );
 
 totalDuration = servicesRes.rows.reduce(
@@ -73,13 +73,13 @@ totalDuration = servicesRes.rows.reduce(
 finalServiceIds = [service_id];
 
 const serviceRes = await query(
-`
-select duration_min
-from public.services
-where id = $1
-limit 1
-`,
-[service_id]
+  `
+  select duration_min
+  from public.services
+  where salon_id = $1 and id = $2
+  limit 1
+  `,
+  [salon_id, service_id]
 );
 
 if (!serviceRes.rowCount) {
