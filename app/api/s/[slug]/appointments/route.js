@@ -54,21 +54,20 @@ if (service_ids && service_ids.length > 0) {
   // remove duplicates
   finalServiceIds = [...new Set(service_ids)];
 
-  const servicesRes = await query(
-    `select duration_min
-     from public.services
-     where id = any($1::uuid[])`,
-    [finalServiceIds]
-  );
+const servicesRes = await query(
+  `
+  select duration_min
+  from public.services
+  where salon_id = $1
+  and id = any($2)
+  `,
+  [salon_id, service_ids]
+);
 
-  if (!servicesRes.rowCount) {
-    return Response.json({ error: "Services not found" }, { status: 404 });
-  }
-
-  totalDuration = servicesRes.rows.reduce(
-    (sum, s) => sum + Number(s.duration_min),
-    0
-  );
+const totalDuration = servicesRes.rows.reduce(
+  (sum, s) => sum + Number(s.duration_min),
+  0
+);
 
 } else {
 
