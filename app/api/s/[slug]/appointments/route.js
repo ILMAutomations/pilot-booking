@@ -105,8 +105,6 @@ totalDuration = Number(serviceRes.rows[0].duration_min);
     return Response.json({ error: "Service not found" }, { status: 404 });
   }
 
-  totalDuration = Number(serviceRes.rows[0].duration_min);
-}
 
     // ---------- parse time safely ----------
 const start = new Date(start_at);
