@@ -51,25 +51,44 @@ let finalServiceIds = [];
 
 if (service_ids && service_ids.length > 0) {
 
-  // remove duplicates
-  finalServiceIds = [...new Set(service_ids)];
+finalServiceIds = [...new Set(service_ids)];
 
 const servicesRes = await query(
-  `
-  select duration_min
-  from public.services
-  where salon_id = $1
-  and id = any($2)
-  `,
-  [salon_id, service_ids]
+`
+select duration_min
+from public.services
+where salon_id = $1
+and id = any($2)
+`,
+[salon_id, service_ids]
 );
 
-const totalDuration = servicesRes.rows.reduce(
-  (sum, s) => sum + Number(s.duration_min),
-  0
+totalDuration = servicesRes.rows.reduce(
+(sum, s) => sum + Number(s.duration_min),
+0
 );
 
 } else {
+
+finalServiceIds = [service_id];
+
+const serviceRes = await query(
+`
+select duration_min
+from public.services
+where id = $1
+limit 1
+`,
+[service_id]
+);
+
+if (!serviceRes.rowCount) {
+return Response.json({ error: "Service not found" }, { status: 404 });
+}
+
+totalDuration = Number(serviceRes.rows[0].duration_min);
+}
+
 
   // fallback old system
   finalServiceIds = [service_id];
