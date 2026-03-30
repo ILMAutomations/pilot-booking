@@ -340,4 +340,3 @@ return Response.json(
   { status: 500 }
 );
   }
-}
