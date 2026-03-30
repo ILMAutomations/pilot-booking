@@ -248,6 +248,7 @@ if (employee_id) {
     from public.appointments
     where salon_id = $1
     and status <> 'cancelled'
+    and employee_id IS NULL
     and start_at < $2
     and end_at > $3
     limit 1
@@ -255,7 +256,7 @@ if (employee_id) {
     [salon_id, endISO, startISO]
   );
 
-}
+} 
 
 if (overlap.rowCount) {
   await query(`ROLLBACK`);
