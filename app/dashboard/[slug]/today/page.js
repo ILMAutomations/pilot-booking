@@ -71,7 +71,7 @@ const UI = {
     outline: "none",
   },
   textarea: {
-    minHeight: 72,
+    minHeight: 0,
     borderRadius: 10,
     border: "1px solid rgba(255,255,255,0.10)",
     background: "rgba(2,6,23,0.35)",
