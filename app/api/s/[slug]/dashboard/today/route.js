@@ -147,11 +147,11 @@ select
 
   -- 🔹 TOTAL DURATION
   (
-    select coalesce(sum(s.duration_min),0)
-    from public.services s
-    where s.id = any(
-      coalesce(a.service_ids, array[a.service_id])
-    )
+select coalesce(max(s.duration_min),0)
+from public.services s
+where s.id = any(
+  coalesce(a.service_ids, array[a.service_id])
+)
   ) as total_duration,
 
   -- 🔹 TOTAL PRICE
