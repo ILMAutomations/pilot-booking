@@ -880,38 +880,41 @@ const height = Math.max(
                   const st = new Date(a.start_at);
                   const time = `${pad2(st.getHours())}:${pad2(st.getMinutes())}`;
 
-                  return (
-                    <div
-                  key={a.id}
-style={{
-  ...UI.appt(a.status),
-  top,
-  height,
-  left: index % 2 === 0 ? "10px" : "55%",
-  width: index % 2 === 0 ? "auto" : "40%",
-  right: index % 2 === 0 ? "10px" : "auto",
-  cursor: "pointer"
-}}
-                   onClick={() => openDetail(a)}
-                   >
-<div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+return (
+  <div
+    key={a.id}
+    style={{
+      ...UI.appt(a.status),
+      top,
+      height,
+      left: index % 2 === 0 ? "10px" : "55%",
+      width: index % 2 === 0 ? "40%" : "40%",
+      right: index % 2 === 0 ? "auto" : "10px",
+      cursor: "pointer"
+    }}
+    onClick={() => openDetail(a)}
+  >
+    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+      
+      <div style={UI.apptTime}>{time}</div>
 
-  <div style={UI.apptTime}>{time}</div>
+      <div style={UI.apptService}>
+        {a.services && a.services.length > 0
+          ? `${a.services[0].name}${a.services.length > 1 ? ` +${a.services.length - 1}` : ""}`
+          : "Service"}
+      </div>
 
-  <div style={UI.apptService}>
-    {a.services && a.services.length > 0
-      ? `${a.services[0].name}${a.services.length > 1 ? ` +${a.services.length - 1}` : ""}`
-      : "Service"}
+      <div style={{ fontSize: 11, opacity: 0.6 }}>
+        {a.employee_name || "—"}
+      </div>
+
+      <div style={UI.apptName}>
+        {a.customer_name || "—"}
+      </div>
+
+    </div>
   </div>
-
-  <div style={{ fontSize: 11, opacity: 0.6 }}>
-    {a.employee_name || "—"}
-  </div>
-
-  <div style={UI.apptName}>
-    {a.customer_name || "—"}
-  </div>
-                 );
+);
                 })}
               </div>
             </div>
