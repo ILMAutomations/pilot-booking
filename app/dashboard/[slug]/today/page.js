@@ -870,7 +870,12 @@ function minFromISO(iso) {
                   const startMin = minFromISO(a.start_at);
 const endMin = startMin + (a.total_duration || 0);
                   const top = ((startMin - displayStart) / 15) * slotPx;
-const height = Math.max(18, ((endMin - startMin) / 15) * slotPx);
+const duration = a.total_duration || 0;
+
+const height = Math.max(
+  slotPx,
+  (duration / 15) * slotPx
+);
 
                   const st = new Date(a.start_at);
                   const time = `${pad2(st.getHours())}:${pad2(st.getMinutes())}`;
