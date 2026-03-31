@@ -125,9 +125,7 @@ select
         else min(s.name) || ' +' || (count(*) - 1)
       end
     from public.services s
-    where s.id = any(
-      coalesce(a.service_ids, array[a.service_id])
-    )
+where s.id = any(a.service_ids)
   ) as service_name,
 
   -- 🔹 FULL SERVICES LIST (NEU)
@@ -140,27 +138,21 @@ select
       )
     )
     from public.services s
-    where s.id = any(
-      coalesce(a.service_ids, array[a.service_id])
-    )
+where s.id = any(a.service_ids)
   ) as services,
 
   -- 🔹 TOTAL DURATION
   (
 select coalesce(max(s.duration_min),0)
 from public.services s
-where s.id = any(
-  coalesce(a.service_ids, array[a.service_id])
-)
+where s.id = any(a.service_ids)
   ) as total_duration,
 
   -- 🔹 TOTAL PRICE
   (
     select coalesce(sum(s.price_cents),0)
     from public.services s
-    where s.id = any(
-      coalesce(a.service_ids, array[a.service_id])
-    )
+where s.id = any(a.service_ids)
   ) as total_price
 
 from public.appointments a
