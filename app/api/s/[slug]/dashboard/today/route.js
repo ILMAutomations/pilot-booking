@@ -143,7 +143,7 @@ where s.id = any(a.service_ids)
 
   -- 🔹 TOTAL DURATION
   (
-select coalesce(max(s.duration_min),0)
+select coalesce(sum(s.duration_min),0)
 from public.services s
 where s.id = any(a.service_ids)
   ) as total_duration,
