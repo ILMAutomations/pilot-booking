@@ -538,7 +538,7 @@ if (!Number.isFinite(displayEnd)) displayEnd = 1140;
   const slotMin = 15;
   const slotPx = 36; // height per 15-min slot
   const totalSlots = Math.max(1, Math.ceil((displayEnd - displayStart) / slotMin));
-  const gridHeight = totalSlots * slotPx;
+  const gridHeight = Math.max(600, totalSlots * slotPx);
 
 const timeline = useMemo(() => {
   const marks = [];
