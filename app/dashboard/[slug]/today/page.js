@@ -895,19 +895,24 @@ style={{
                    onClick={() => openDetail(a)}
                    >
 <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                        <div>
-                          <div style={UI.apptTime}>{time}</div>
-                         <div style={UI.apptService}>
-  {a.services && a.services.length > 0
-    ? `${a.services[0].name}${a.services.length > 1 ? ` +${a.services.length - 1}` : ""}`
-    : "Service"}
-</div>
-                          <div style={UI.apptName}>{a.customer_name || "—"}</div>
-                    <div style={{ fontSize:11, fontWeight:700 }}>
- {a.status}
-</div>
 
-                    </div>
+  <div style={UI.apptTime}>{time}</div>
+
+  <div style={UI.apptService}>
+    {a.services && a.services.length > 0
+      ? `${a.services[0].name}${a.services.length > 1 ? ` +${a.services.length - 1}` : ""}`
+      : "Service"}
+  </div>
+
+  <div style={{ fontSize: 11, opacity: 0.6 }}>
+    {a.employee_name || "—"}
+  </div>
+
+  <div style={UI.apptName}>
+    {a.customer_name || "—"}
+  </div>
+
+</div>
                   );
                 })}
               </div>
