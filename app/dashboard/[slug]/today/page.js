@@ -906,14 +906,6 @@ style={{
                     <div style={{ fontSize:11, fontWeight:700 }}>
  {a.status}
 </div>
-                        </div>
-                        <div style={UI.apptActions}>
-                          <button style={UI.miniBtn} onClick={() => openMove(a)}>Verschieben</button>
-                          <button style={UI.miniBtn} onClick={() => deleteAppt(a.id)}>Löschen</button>
-                        </div>
-                      </div>
-
-
 
                     </div>
                   );
