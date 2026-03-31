@@ -219,7 +219,7 @@ if (!(startMin >= openMin && endMin <= closeMin)) {
 }
 
 // ---------- overlap protection ----------
-let overlap;
+let overlap = { rowCount: 0 };
 
 if (employee_id) {
 
