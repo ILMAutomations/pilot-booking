@@ -169,7 +169,7 @@ const UI = {
     display: "flex",
     flexDirection: "column",
     gap: 4,
-    minHeight: 70
+minHeight: height
   };
 
 },
