@@ -1036,9 +1036,9 @@ style={{
   <b>Preis:</b> {(detailAppt.total_price / 100).toFixed(2)} €
 </div>
       <div><b>Name:</b> {detailAppt.customer_name}</div>
-{typeof detailAppt.employee_name === "string" && detailAppt.employee_name.length > 0 && (
-<div><b>Mitarbeiter:</b> {detailAppt.employee_name || "—"}</div>
-)} 
+<div>
+  <b>Mitarbeiter:</b> {detailAppt.employee_name || "—"}
+</div>
 
       {detailAppt.customer_phone && (
         <div><b>Tel:</b> {detailAppt.customer_phone}</div>
