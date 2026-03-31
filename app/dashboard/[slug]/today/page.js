@@ -894,7 +894,7 @@ style={{
 }}
                    onClick={() => openDetail(a)}
                    >
-                      <div style={UI.apptTop}>
+<div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                         <div>
                           <div style={UI.apptTime}>{time}</div>
                          <div style={UI.apptService}>
