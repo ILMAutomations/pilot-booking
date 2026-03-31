@@ -219,8 +219,6 @@ if (!(startMin >= openMin && endMin <= closeMin)) {
 }
 
 // ---------- overlap protection ----------
-console.log("EMPLOYEE_ID:", employee_id);
-
 let overlap;
 
 if (employee_id) {
@@ -234,9 +232,9 @@ if (employee_id) {
     and start_at < $3
     and end_at > $4
     limit 1
-    `, [salon_id, employee_id, endISO, startISO] );
+  `, [salon_id, employee_id, endISO, startISO]);
 
-} 
+}
 
   
 if (overlap.rowCount) {
