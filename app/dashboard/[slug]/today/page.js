@@ -911,9 +911,7 @@ style={{
   <div style={UI.apptName}>
     {a.customer_name || "—"}
   </div>
-
-</div>
-                  );
+                 );
                 })}
               </div>
             </div>
