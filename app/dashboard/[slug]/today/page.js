@@ -861,6 +861,10 @@ function minFromISO(iso) {
 
                 {/* appointments */}
                 {rows.map((a) => {
+                 console.log("DURATION DEBUG:", {
+  start: a.start_at,
+  duration: a.total_duration
+});
                   console.log("TIMELINE SERVICES:", a.services);
                  
                   const startMin = minFromISO(a.start_at);
