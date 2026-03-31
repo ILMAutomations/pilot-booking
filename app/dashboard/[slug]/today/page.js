@@ -860,7 +860,7 @@ function minFromISO(iso) {
                 })}
 
                 {/* appointments */}
-                {rows.map((a) => {
+                {rows.map((a, index) => {
                  console.log("DURATION DEBUG:", {
   start: a.start_at,
   duration: a.total_duration
@@ -878,7 +878,15 @@ const height = Math.max(18, ((endMin - startMin) / 15) * slotPx);
                   return (
                     <div
                   key={a.id}
-                  style={{ ...UI.appt(a.status), top, height, cursor: "pointer" }}
+style={{
+  ...UI.appt(a.status),
+  top,
+  height,
+  left: index % 2 === 0 ? "10px" : "55%",
+  width: index % 2 === 0 ? "auto" : "40%",
+  right: index % 2 === 0 ? "10px" : "auto",
+  cursor: "pointer"
+}}
                    onClick={() => openDetail(a)}
                    >
                       <div style={UI.apptTop}>
