@@ -850,7 +850,7 @@ function minFromISO(iso) {
                 })}
               </div>
 
-              <div style={{ ...UI.gridArea, height: gridHeight }}>
+<div style={{ ...UI.gridArea, minHeight: gridHeight }}>
                 {/* slot lines */}
                 {timeline.map((m) => {
                   const idx = timeline.indexOf(m);
