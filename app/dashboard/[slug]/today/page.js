@@ -864,8 +864,7 @@ function minFromISO(iso) {
                   console.log("TIMELINE SERVICES:", a.services);
                  
                   const startMin = minFromISO(a.start_at);
-const duration = Number(a.total_duration || 0);
-const endMin = startMin + duration;
+const endMin = startMin + (a.total_duration || 0);
                   const top = ((startMin - displayStart) / 15) * slotPx;
                  const height = Math.max(42, ((endMin - startMin) / 15) * slotPx);
 
