@@ -549,17 +549,7 @@ const timeline = useMemo(() => {
 
 function minFromISO(iso) {
   const d = new Date(iso);
-
-  return (
-    d.toLocaleTimeString("en-GB", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false
-    })
-      .split(":")
-      .map(Number)
-      .reduce((h, m) => h * 60 + m)
-  );
+  return d.getHours() * 60 + d.getMinutes();
 }
 
   if (!slug) return null;
