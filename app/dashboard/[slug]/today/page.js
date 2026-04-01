@@ -899,7 +899,7 @@ overflow: "hidden",
       
       <div style={UI.apptTime}>{time}</div>
 
-      <div style={UI.apptService}>
+<div style={{...UI.apptService, fontSize: 11, lineHeight: "12px"}}>
         {a.services && a.services.length > 0
           ? `${a.services[0].name}${a.services.length > 1 ? ` +${a.services.length - 1}` : ""}`
           : "Service"}
