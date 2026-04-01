@@ -527,6 +527,7 @@ async function saveHours() {
 const rows = Array.isArray(today?.rows) ? today.rows : [];
 
 let displayStart = Number(today?.display_start_min ?? 540);
+ displayStart = Math.floor(displayStart / 15) * 15;
 let displayEnd = Number(today?.display_end_min ?? 1140);
 
 
