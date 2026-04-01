@@ -843,7 +843,7 @@ function minFromISO(iso) {
                 {/* slot lines */}
                 {timeline.map((m) => {
                   const idx = timeline.indexOf(m);
-                  const top = idx * slotPx;
+                  const top = Math.round(idx * slotPx);
                   const isHour = m % 60 === 0;
                   return <div key={m} style={{ ...UI.slotLine(isHour), top }} />;
                 })}
