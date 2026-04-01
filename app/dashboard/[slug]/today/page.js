@@ -535,7 +535,7 @@ if (!Number.isFinite(displayStart)) displayStart = 540;
 if (!Number.isFinite(displayEnd)) displayEnd = 1140;
 
   const slotMin = 15;
-  const slotPx = 26; // height per 15-min slot
+  const slotPx = 20; // height per 15-min slot
   const totalSlots = Math.ceil((displayEnd - displayStart) / slotMin);
   const gridHeight = totalSlots * slotPx;
 
