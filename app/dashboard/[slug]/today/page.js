@@ -524,10 +524,10 @@ async function saveHours() {
   }
 
   // ---- timeline math ----
-const rows = today?.rows && Array.isArray(today.rows) ? today.rows : [];
+const rows = Array.isArray(today?.rows) ? today.rows : [];
 
-let displayStart = Number(safeToday.display_start_min ?? 540);
-let displayEnd = Number(safeToday.display_end_min ?? 1140);
+let displayStart = Number(today?.display_start_min ?? 540);
+let displayEnd = Number(today?.display_end_min ?? 1140);
 
 
 // safety fallback
