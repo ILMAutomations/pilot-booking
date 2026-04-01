@@ -885,7 +885,9 @@ return (
     style={{
       ...UI.appt(a.status),
       top,
-      height,
+height: Math.max(height, 24),
+padding: "4px 6px",
+overflow: "hidden",
       left: index % 2 === 0 ? "10px" : "55%",
       width: index % 2 === 0 ? "40%" : "40%",
       right: index % 2 === 0 ? "auto" : "10px",
