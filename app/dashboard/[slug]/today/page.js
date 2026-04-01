@@ -858,7 +858,7 @@ function minFromISO(iso) {
                  
                   const startMin = minFromISO(a.start_at);
 const endMin = startMin + (a.total_duration || 0);
-                  const top = ((startMin - displayStart) / 15) * slotPx;
+const top = Math.round(((startMin - displayStart) / 15) * slotPx);
 const duration = a.total_duration || 0;
 
 const height = Math.max(
