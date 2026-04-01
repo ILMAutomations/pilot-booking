@@ -526,7 +526,7 @@ async function saveHours() {
   // ---- timeline math ----
 const rows = Array.isArray(today?.rows) ? today.rows : [];
 
-let displayStart = Number(today?.display_start_min ?? 540);
+let displayStart = 7 * 60; // 07:00 FIX
  displayStart = Math.floor(displayStart / 15) * 15;
 let displayEnd = Number(today?.display_end_min ?? 1140);
 
