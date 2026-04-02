@@ -140,7 +140,44 @@ const globalAppts = [];
 const employeeAppts = {};
 
 for (const e of employees) {
-  employeeAppts[e.id] = [];
+
+  const list = employeeAppts[e.id] || [];
+
+  // 🔹 NEW: working hours check
+  const hoursRes = await query(
+    `
+    select * from employee_hours
+    where employee_id = $1 and weekday = $2
+    `,
+    [e.id, weekdayMap[weekday]]
+  );
+
+  const hours = hoursRes.rows[0];
+
+  if (!hours || !hours.is_active) continue;
+
+  const startWork = timeToMin(hours.start_time);
+  const endWork = timeToMin(hours.end_time);
+
+  if (slotStart < startWork || slotEnd > endWork) continue;
+
+  // 🔹 EXISTING LOGIC (NICHT LÖSCHEN!)
+  let blocked = false;
+
+  for (const a of list) {
+    if (slotStart < a.end && slotEnd > a.start) {
+      blocked = true;
+      break;
+    }
+  }
+
+  if (!blocked) {
+    availableEmployees.push({
+      id: e.id,
+      name: e.name
+    });
+  }
+
 }
 
 for (const a of appointments) {
