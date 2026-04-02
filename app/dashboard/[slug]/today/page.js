@@ -833,9 +833,17 @@ return d.getHours() * 60 + d.getMinutes();
                {timeline.map((m) => {
                   const isHour = m % 60 === 0;
                   return (
-                    <div key={m} style={UI.axisItem(isHour)}>
-                      {toHHMM(m)}
-                    </div>
+<div
+  key={m}
+  style={{
+    ...UI.axisItem(isHour),
+    height: slotPx,
+    display: "flex",
+    alignItems: "flex-start"
+  }}
+>
+  {toHHMM(m)}
+</div>
                   );
                 })}
               </div>
