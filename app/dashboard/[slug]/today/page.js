@@ -630,6 +630,10 @@ return d.getHours() * 60 + d.getMinutes();
   <Link href={`/dashboard/${slug}/services`} style={UI.tab(false)}>
     Services
   </Link>
+
+<Link href={`/dashboard/${slug}/employees`} style={UI.tab(false)}>
+  Employees
+</Link> 
 </div>
 
   <div style={UI.formGrid}>
