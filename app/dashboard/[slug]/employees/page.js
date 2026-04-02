@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import UI from "@/lib/ui";
 
 export default function EmployeesPage({ params }) {
   const { slug } = params;
