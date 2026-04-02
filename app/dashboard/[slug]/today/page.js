@@ -542,7 +542,7 @@ if (!Number.isFinite(displayEnd)) displayEnd = 1140;
 
 const timeline = useMemo(() => {
   const marks = [];
-  for (let m = displayStart; m <= displayEnd; m += slotMin) {
+for (let m = displayStart; m < displayEnd; m += slotMin) {
     marks.push(m);
   }
   return marks;
