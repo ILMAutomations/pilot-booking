@@ -50,66 +50,96 @@ export default function EmployeesPage({ params }) {
   }, []);
 
 return (
-  <div style={UI.page}>
-    <div style={UI.shell}>
-      
-      <h2 style={UI.title}>Mitarbeiter</h2>
+  <div
+    style={{
+      minHeight: "100vh",
+      background: "#0B1220",
+      color: "#fff",
+      padding: 20,
+    }}
+  >
+    <h2 style={{ marginBottom: 20 }}>Mitarbeiter</h2>
 
-      {/* Add Employee */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Name"
-          style={UI.input}
-        />
-        <button onClick={addEmployee} style={UI.btn(true)}>
-          Hinzufügen
-        </button>
-      </div>
+    {/* Add */}
+    <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+      <input
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="Name"
+        style={{
+          padding: 10,
+          borderRadius: 8,
+          border: "1px solid rgba(255,255,255,0.2)",
+          background: "#111",
+          color: "#fff",
+        }}
+      />
+      <button
+        onClick={addEmployee}
+        style={{
+          padding: "10px 16px",
+          borderRadius: 8,
+          border: "none",
+          background: "#fff",
+          color: "#000",
+        }}
+      >
+        Hinzufügen
+      </button>
+    </div>
 
-      {/* List */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {employees.map((e) => (
-          <div
-            key={e.id}
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              padding: 12,
-              borderRadius: 10,
-              border: "1px solid rgba(255,255,255,0.1)",
-              background: "rgba(255,255,255,0.03)",
-            }}
-          >
-            <div>
-              <div style={{ fontWeight: 600 }}>{e.name}</div>
-              <div style={{ fontSize: 12, opacity: 0.6 }}>
-                {e.active ? "Active" : "Inactive"}
-              </div>
-            </div>
-
-            <div style={{ display: "flex", gap: 8 }}>
-              <button
-                onClick={() => toggleEmployee(e)}
-                style={UI.miniBtn}
-              >
-                {e.active ? "Deactivate" : "Activate"}
-              </button>
-
-              <button
-                onClick={() => deleteEmployee(e.id)}
-                style={{ ...UI.miniBtn, borderColor: "rgba(255,0,0,0.4)" }}
-              >
-                Löschen
-              </button>
+    {/* List */}
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {employees.map((e) => (
+        <div
+          key={e.id}
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            padding: 12,
+            borderRadius: 10,
+            border: "1px solid rgba(255,255,255,0.1)",
+            background: "rgba(255,255,255,0.03)",
+          }}
+        >
+          <div>
+            <div style={{ fontWeight: 600 }}>{e.name}</div>
+            <div style={{ fontSize: 12, opacity: 0.6 }}>
+              {e.active ? "Active" : "Inactive"}
             </div>
           </div>
-        ))}
-      </div>
 
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              onClick={() => toggleEmployee(e)}
+              style={{
+                padding: "6px 10px",
+                borderRadius: 6,
+                border: "1px solid rgba(255,255,255,0.2)",
+                background: "transparent",
+                color: "#fff",
+              }}
+            >
+              {e.active ? "Deactivate" : "Activate"}
+            </button>
+
+            <button
+              onClick={() => deleteEmployee(e.id)}
+              style={{
+                padding: "6px 10px",
+                borderRadius: 6,
+                border: "1px solid rgba(255,0,0,0.4)",
+                background: "transparent",
+                color: "#ff6b6b",
+              }}
+            >
+              Löschen
+            </button>
+          </div>
+        </div>
+      ))}
     </div>
   </div>
-)
+);
 }
