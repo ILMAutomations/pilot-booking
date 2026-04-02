@@ -859,7 +859,7 @@ return d.getHours() * 60 + d.getMinutes();
                  
                   const startMin = minFromISO(a.start_at);
 const endMin = startMin + (a.total_duration || 0);
-const top = Math.round(((startMin - displayStart) / 15) * slotPx) - slotPx;
+const top = Math.round(((startMin - displayStart) / 15) * slotPx) - (slotPx / 2);
 const duration = a.total_duration || 0;
 
 const height = Math.max(
