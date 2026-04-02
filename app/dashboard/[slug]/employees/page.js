@@ -49,45 +49,66 @@ export default function EmployeesPage({ params }) {
     loadEmployees();
   }, []);
 
-  return (
-    <div style={{ padding: 20 }}>
-      <h2>Mitarbeiter</h2>
+return (
+  <div style={UI.page}>
+    <div style={UI.shell}>
+      
+      <h2 style={UI.title}>Mitarbeiter</h2>
 
-      {/* ADD */}
-      <div style={{ marginBottom: 20 }}>
+      {/* Add Employee */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
         <input
-          placeholder="Name"
           value={name}
           onChange={(e) => setName(e.target.value)}
+          placeholder="Name"
+          style={UI.input}
         />
-        <button onClick={addEmployee}>Hinzufügen</button>
+        <button onClick={addEmployee} style={UI.btn(true)}>
+          Hinzufügen
+        </button>
       </div>
 
-      {/* LIST */}
-      {employees.map((e) => (
-        <div
-          key={e.id}
-          style={{
-            display: "flex",
-            gap: 10,
-            alignItems: "center",
-            marginBottom: 10,
-          }}
-        >
-          <div style={{ width: 150 }}>{e.name}</div>
-          <div style={{ width: 100 }}>
-            {e.active ? "Active" : "Inactive"}
+      {/* List */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {employees.map((e) => (
+          <div
+            key={e.id}
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              padding: 12,
+              borderRadius: 10,
+              border: "1px solid rgba(255,255,255,0.1)",
+              background: "rgba(255,255,255,0.03)",
+            }}
+          >
+            <div>
+              <div style={{ fontWeight: 600 }}>{e.name}</div>
+              <div style={{ fontSize: 12, opacity: 0.6 }}>
+                {e.active ? "Active" : "Inactive"}
+              </div>
+            </div>
+
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                onClick={() => toggleEmployee(e)}
+                style={UI.miniBtn}
+              >
+                {e.active ? "Deactivate" : "Activate"}
+              </button>
+
+              <button
+                onClick={() => deleteEmployee(e.id)}
+                style={{ ...UI.miniBtn, borderColor: "rgba(255,0,0,0.4)" }}
+              >
+                Löschen
+              </button>
+            </div>
           </div>
+        ))}
+      </div>
 
-          <button onClick={() => toggleEmployee(e)}>
-            {e.active ? "Deactivate" : "Activate"}
-          </button>
-
-          <button onClick={() => deleteEmployee(e.id)}>
-            Löschen
-          </button>
-        </div>
-      ))}
     </div>
-  );
-}
+  </div>
+)
