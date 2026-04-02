@@ -139,9 +139,22 @@ const employees = employeesRes.rows || [];
 const globalAppts = [];
 const employeeAppts = {};
 
-for (const e of employees) {
-  employeeAppts[e.id] = [];
-}
+const hoursRes = await query(
+  `
+  select * from employee_hours
+  where employee_id = $1 and weekday = $2
+  `,
+  [e.id, weekdayMap[weekday]]
+);
+
+const hours = hoursRes.rows[0];
+
+if (!hours || !hours.is_active) continue;
+
+const startWork = timeToMin(hours.start_time);
+const endWork = timeToMin(hours.end_time);
+
+if (slotStart < startWork || slotEnd > endWork) continue;
 
 for (const a of appointments) {
 
