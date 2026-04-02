@@ -19,6 +19,7 @@ export default function EmployeesPage({ params }) {
 
     await fetch("/api/employees", {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, slug }),
     });
 
@@ -34,127 +35,183 @@ export default function EmployeesPage({ params }) {
     loadEmployees();
   }
 
-  async function toggleEmployee(e) {
-    await fetch(`/api/employees/${e.id}`, {
+  async function toggleEmployee(emp) {
+    await fetch(`/api/employees/${emp.id}`, {
       method: "PATCH",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        active: !e.active,
+        active: !emp.active,
       }),
     });
 
     loadEmployees();
   }
 
+  async function saveHours(employeeId, weekday, data) {
+    await fetch("/api/employee-hours", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        employee_id: employeeId,
+        weekday,
+        ...data,
+      }),
+    });
+  }
+
   useEffect(() => {
     loadEmployees();
   }, []);
 
-return (
-  <div
-    style={{
-      minHeight: "100vh",
-      background: "#0B1220",
-      color: "#fff",
-      padding: 20,
-    }}
-  >
-    <h2 style={{ marginBottom: 20 }}>Mitarbeiter</h2>
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "#0B1220",
+        color: "#fff",
+        padding: 20,
+      }}
+    >
+      <h2 style={{ marginBottom: 20 }}>Mitarbeiter</h2>
 
-    {/* Add */}
-    <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
-      <input
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        placeholder="Name"
-        style={{
-          padding: 10,
-          borderRadius: 8,
-          border: "1px solid rgba(255,255,255,0.2)",
-          background: "#111",
-          color: "#fff",
-        }}
-      />
-      <button
-        onClick={addEmployee}
-        style={{
-          padding: "10px 16px",
-          borderRadius: 8,
-          border: "none",
-          background: "#fff",
-          color: "#000",
-        }}
-      >
-        Hinzufügen
-      </button>
-    </div>
-
-    {/* List */}
-    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-      {employees.map((e) => (
-        <div
-          key={e.id}
+      {/* Add */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Name"
           style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            padding: 12,
-            borderRadius: 10,
-            border: "1px solid rgba(255,255,255,0.1)",
-            background: "rgba(255,255,255,0.03)",
-          }}>
-<div style={{ marginTop: 10 }}>
-  {["Mo","Di","Mi","Do","Fr","Sa","So"].map((d, i) => (
-    <div key={i} style={{ display: "flex", gap: 6, marginBottom: 4 }}>
+            padding: 10,
+            borderRadius: 8,
+            border: "1px solid rgba(255,255,255,0.2)",
+            background: "#111",
+            color: "#fff",
+          }}
+        />
+        <button
+          onClick={addEmployee}
+          style={{
+            padding: "10px 16px",
+            borderRadius: 8,
+            border: "none",
+            background: "#fff",
+            color: "#000",
+          }}
+        >
+          Hinzufügen
+        </button>
+      </div>
 
-      <span style={{ width: 30 }}>{d}</span>
+      {/* List */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {employees.map((emp) => (
+          <div
+            key={emp.id}
+            style={{
+              padding: 12,
+              borderRadius: 10,
+              border: "1px solid rgba(255,255,255,0.1)",
+              background: "rgba(255,255,255,0.03)",
+            }}
+          >
+            {/* HEADER */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                marginBottom: 10,
+              }}
+            >
+              <div>
+                <div style={{ fontWeight: 600 }}>{emp.name}</div>
+                <div style={{ fontSize: 12, opacity: 0.6 }}>
+                  {emp.active ? "Active" : "Inactive"}
+                </div>
+              </div>
 
-      <input type="checkbox" />
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  onClick={() => toggleEmployee(emp)}
+                  style={{
+                    padding: "6px 10px",
+                    borderRadius: 6,
+                    border: "1px solid rgba(255,255,255,0.2)",
+                    background: "transparent",
+                    color: "#fff",
+                  }}
+                >
+                  {emp.active ? "Deactivate" : "Activate"}
+                </button>
 
-      <input type="time" defaultValue="10:00" />
+                <button
+                  onClick={() => deleteEmployee(emp.id)}
+                  style={{
+                    padding: "6px 10px",
+                    borderRadius: 6,
+                    border: "1px solid rgba(255,0,0,0.4)",
+                    background: "transparent",
+                    color: "#ff6b6b",
+                  }}
+                >
+                  Löschen
+                </button>
+              </div>
+            </div>
 
-      <input type="time" defaultValue="18:00" />
+            {/* WORKING HOURS */}
+            <div>
+              {["Mo","Di","Mi","Do","Fr","Sa","So"].map((d, i) => (
+                <div
+                  key={i}
+                  style={{
+                    display: "flex",
+                    gap: 6,
+                    marginBottom: 6,
+                    alignItems: "center",
+                  }}
+                >
+                  <span style={{ width: 30 }}>{d}</span>
 
-    </div>
-  ))}
-</div>
-        
-          <div>
-            <div style={{ fontWeight: 600 }}>{e.name}</div>
-            <div style={{ fontSize: 12, opacity: 0.6 }}>
-              {e.active ? "Active" : "Inactive"}
+                  <input
+                    type="checkbox"
+                    onChange={(ev) =>
+                      saveHours(emp.id, i + 1, {
+                        is_active: ev.target.checked,
+                        start_time: "10:00",
+                        end_time: "18:00",
+                      })
+                    }
+                  />
+
+                  <input
+                    type="time"
+                    defaultValue="10:00"
+                    onBlur={(ev) =>
+                      saveHours(emp.id, i + 1, {
+                        is_active: true,
+                        start_time: ev.target.value,
+                        end_time: "18:00",
+                      })
+                    }
+                  />
+
+                  <input
+                    type="time"
+                    defaultValue="18:00"
+                    onBlur={(ev) =>
+                      saveHours(emp.id, i + 1, {
+                        is_active: true,
+                        start_time: "10:00",
+                        end_time: ev.target.value,
+                      })
+                    }
+                  />
+                </div>
+              ))}
             </div>
           </div>
-
-          <div style={{ display: "flex", gap: 8 }}>
-            <button
-              onClick={() => toggleEmployee(e)}
-              style={{
-                padding: "6px 10px",
-                borderRadius: 6,
-                border: "1px solid rgba(255,255,255,0.2)",
-                background: "transparent",
-                color: "#fff",
-              }}
-            >
-              {e.active ? "Deactivate" : "Activate"}
-            </button>
-
-            <button
-              onClick={() => deleteEmployee(e.id)}
-              style={{
-                padding: "6px 10px",
-                borderRadius: 6,
-                border: "1px solid rgba(255,0,0,0.4)",
-                background: "transparent",
-                color: "#ff6b6b",
-              }}
-            >
-              Löschen
-            </button>
-          </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
-  </div>
-);
+  );
 }
