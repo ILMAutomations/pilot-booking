@@ -102,6 +102,21 @@ return (
             border: "1px solid rgba(255,255,255,0.1)",
             background: "rgba(255,255,255,0.03)",
           }}
+<div style={{ marginTop: 10 }}>
+  {["Mo","Di","Mi","Do","Fr","Sa","So"].map((d, i) => (
+    <div key={i} style={{ display: "flex", gap: 6, marginBottom: 4 }}>
+
+      <span style={{ width: 30 }}>{d}</span>
+
+      <input type="checkbox" />
+
+      <input type="time" defaultValue="10:00" />
+
+      <input type="time" defaultValue="18:00" />
+
+    </div>
+  ))}
+</div>
         >
           <div>
             <div style={{ fontWeight: 600 }}>{e.name}</div>
