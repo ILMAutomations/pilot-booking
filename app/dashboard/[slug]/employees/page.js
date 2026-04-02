@@ -101,7 +101,7 @@ return (
             borderRadius: 10,
             border: "1px solid rgba(255,255,255,0.1)",
             background: "rgba(255,255,255,0.03)",
-          }}
+          }}>
 <div style={{ marginTop: 10 }}>
   {["Mo","Di","Mi","Do","Fr","Sa","So"].map((d, i) => (
     <div key={i} style={{ display: "flex", gap: 6, marginBottom: 4 }}>
