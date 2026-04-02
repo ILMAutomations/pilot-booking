@@ -550,7 +550,7 @@ const timeline = useMemo(() => {
 
 function minFromISO(iso) {
   const d = new Date(iso);
-  return d.getUTCHours() * 60 + d.getUTCMinutes();
+return d.getHours() * 60 + d.getMinutes();
 }
 
   if (!slug) return null;
