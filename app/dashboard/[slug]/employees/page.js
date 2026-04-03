@@ -7,11 +7,24 @@ export default function EmployeesPage({ params }) {
 
   const [employees, setEmployees] = useState([]);
   const [name, setName] = useState("");
+  const [hoursMap, setHoursMap] = useState({});
 
-  async function loadEmployees() {
+  async function loadEmployeesWithHours() {
     const res = await fetch(`/api/employees?slug=${slug}`);
     const data = await res.json();
+
     setEmployees(data || []);
+
+    // 🔥 hours laden für jeden employee
+    const map = {};
+
+    for (const emp of data || []) {
+      const r = await fetch(`/api/employee-hours?employee_id=${emp.id}`);
+      const h = await r.json();
+      map[emp.id] = h;
+    }
+
+    setHoursMap(map);
   }
 
   async function addEmployee() {
@@ -24,7 +37,7 @@ export default function EmployeesPage({ params }) {
     });
 
     setName("");
-    loadEmployees();
+    loadEmployeesWithHours();
   }
 
   async function deleteEmployee(id) {
@@ -32,7 +45,7 @@ export default function EmployeesPage({ params }) {
       method: "DELETE",
     });
 
-    loadEmployees();
+    loadEmployeesWithHours();
   }
 
   async function toggleEmployee(emp) {
@@ -44,7 +57,7 @@ export default function EmployeesPage({ params }) {
       }),
     });
 
-    loadEmployees();
+    loadEmployeesWithHours();
   }
 
   async function saveHours(employeeId, weekday, data) {
@@ -57,10 +70,13 @@ export default function EmployeesPage({ params }) {
         ...data,
       }),
     });
+
+    // 🔥 reload hours sofort
+    loadEmployeesWithHours();
   }
 
   useEffect(() => {
-    loadEmployees();
+    loadEmployeesWithHours();
   }, []);
 
   return (
@@ -160,54 +176,61 @@ export default function EmployeesPage({ params }) {
 
             {/* WORKING HOURS */}
             <div>
-              {["Mo","Di","Mi","Do","Fr","Sa","So"].map((d, i) => (
-                <div
-                  key={i}
-                  style={{
-                    display: "flex",
-                    gap: 6,
-                    marginBottom: 6,
-                    alignItems: "center",
-                  }}
-                >
-                  <span style={{ width: 30 }}>{d}</span>
+              {["Mo","Di","Mi","Do","Fr","Sa","So"].map((d, i) => {
+                const day = (hoursMap[emp.id] || []).find(
+                  (h) => h.weekday === i + 1
+                );
 
-                  <input
-                    type="checkbox"
-                    onChange={(ev) =>
-                      saveHours(emp.id, i + 1, {
-                        is_active: ev.target.checked,
-                        start_time: "10:00",
-                        end_time: "18:00",
-                      })
-                    }
-                  />
+                return (
+                  <div
+                    key={i}
+                    style={{
+                      display: "flex",
+                      gap: 6,
+                      marginBottom: 6,
+                      alignItems: "center",
+                    }}
+                  >
+                    <span style={{ width: 30 }}>{d}</span>
 
-                  <input
-                    type="time"
-                    defaultValue="10:00"
-                    onBlur={(ev) =>
-                      saveHours(emp.id, i + 1, {
-                        is_active: true,
-                        start_time: ev.target.value,
-                        end_time: "18:00",
-                      })
-                    }
-                  />
+                    <input
+                      type="checkbox"
+                      checked={!!day?.is_active}
+                      onChange={(ev) =>
+                        saveHours(emp.id, i + 1, {
+                          is_active: ev.target.checked,
+                          start_time: day?.start_time || "10:00",
+                          end_time: day?.end_time || "18:00",
+                        })
+                      }
+                    />
 
-                  <input
-                    type="time"
-                    defaultValue="18:00"
-                    onBlur={(ev) =>
-                      saveHours(emp.id, i + 1, {
-                        is_active: true,
-                        start_time: "10:00",
-                        end_time: ev.target.value,
-                      })
-                    }
-                  />
-                </div>
-              ))}
+                    <input
+                      type="time"
+                      value={day?.start_time || "10:00"}
+                      onChange={(ev) =>
+                        saveHours(emp.id, i + 1, {
+                          is_active: true,
+                          start_time: ev.target.value,
+                          end_time: day?.end_time || "18:00",
+                        })
+                      }
+                    />
+
+                    <input
+                      type="time"
+                      value={day?.end_time || "18:00"}
+                      onChange={(ev) =>
+                        saveHours(emp.id, i + 1, {
+                          is_active: true,
+                          start_time: day?.start_time || "10:00",
+                          end_time: ev.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                );
+              })}
             </div>
           </div>
         ))}
