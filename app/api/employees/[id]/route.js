@@ -1,22 +1,31 @@
-import { NextResponse } from "next/server"
+import { NextResponse } from "next/server";
+import { query } from "@/lib/db";
 
-let employees = []
-
+// UPDATE employee
 export async function PATCH(req, { params }) {
-  const { id } = params
-  const body = await req.json()
+  const { id } = params;
+  const body = await req.json();
 
-  employees = employees.map(e =>
-    e.id === id ? { ...e, ...body } : e
-  )
+  await query(
+    `
+    update employees
+    set active = $1
+    where id = $2
+    `,
+    [body.active, id]
+  );
 
-  return NextResponse.json({ ok: true })
+  return NextResponse.json({ ok: true });
 }
 
+// DELETE employee
 export async function DELETE(req, { params }) {
-  const { id } = params
+  const { id } = params;
 
-  employees = employees.filter(e => e.id !== id)
+  await query(
+    `delete from employees where id = $1`,
+    [id]
+  );
 
-  return NextResponse.json({ ok: true })
+  return NextResponse.json({ ok: true });
 }
