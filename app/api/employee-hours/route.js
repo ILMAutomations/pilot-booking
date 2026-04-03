@@ -16,22 +16,37 @@ export async function GET(req) {
 
 // POST (UPSERT)
 export async function POST(req) {
-  const body = await req.json();
+  try {
+    const body = await req.json();
 
-  const { employee_id, weekday, start_time, end_time, is_active } = body;
+    console.log("BODY:", body);
 
-  await query(
-    `
-    INSERT INTO employee_hours (employee_id, weekday, start_time, end_time, is_active)
-    VALUES ($1, $2, $3, $4, $5)
-    ON CONFLICT (employee_id, weekday)
-    DO UPDATE SET
-      start_time = EXCLUDED.start_time,
-      end_time = EXCLUDED.end_time,
-      is_active = EXCLUDED.is_active
-    `,
-    [employee_id, weekday, start_time, end_time, is_active]
-  );
+    const { employee_id, weekday, start_time, end_time, is_active } = body;
 
-  return NextResponse.json({ success: true });
+    console.log("VALUES:", {
+      employee_id,
+      weekday,
+      start_time,
+      end_time,
+      is_active,
+    });
+
+    await query(
+      `
+      INSERT INTO employee_hours (employee_id, weekday, start_time, end_time, is_active)
+      VALUES ($1, $2, $3, $4, $5)
+      ON CONFLICT (employee_id, weekday)
+      DO UPDATE SET
+        start_time = EXCLUDED.start_time,
+        end_time = EXCLUDED.end_time,
+        is_active = EXCLUDED.is_active
+      `,
+      [employee_id, weekday, start_time, end_time, is_active]
+    );
+
+    return Response.json({ success: true });
+  } catch (err) {
+    console.error("ERROR:", err);
+    return Response.json({ error: err.message }, { status: 500 });
+  }
 }
