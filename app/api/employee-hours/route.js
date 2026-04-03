@@ -1,36 +1,37 @@
+import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
 
+// GET
 export async function GET(req) {
-  const url = new URL(req.url);
-  const employee_id = url.searchParams.get("employee_id");
+  const { searchParams } = new URL(req.url);
+  const employee_id = searchParams.get("employee_id");
 
   const res = await query(
-    `select * from employee_hours where employee_id = $1`,
+    `SELECT * FROM employee_hours WHERE employee_id = $1`,
     [employee_id]
   );
 
-  return Response.json(res.rows);
+  return NextResponse.json(res.rows);
 }
 
+// POST (UPSERT)
 export async function POST(req) {
   const body = await req.json();
 
-  const res = await query(
+  const { employee_id, weekday, start_time, end_time, is_active } = body;
+
+  await query(
     `
-    insert into employee_hours (
-      employee_id, weekday, start_time, end_time, is_active
-    )
-    values ($1,$2,$3,$4,$5)
-    returning *
+    INSERT INTO employee_hours (employee_id, weekday, start_time, end_time, is_active)
+    VALUES ($1, $2, $3, $4, $5)
+    ON CONFLICT (employee_id, weekday)
+    DO UPDATE SET
+      start_time = EXCLUDED.start_time,
+      end_time = EXCLUDED.end_time,
+      is_active = EXCLUDED.is_active
     `,
-    [
-      body.employee_id,
-      body.weekday,
-      body.start_time,
-      body.end_time,
-      body.is_active ?? true
-    ]
+    [employee_id, weekday, start_time, end_time, is_active]
   );
 
-  return Response.json(res.rows[0]);
+  return NextResponse.json({ success: true });
 }
